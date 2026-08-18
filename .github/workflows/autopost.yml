@@ -8,10 +8,11 @@ on:
     - cron: "0,30 2-15 * * *"
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "Dry run (build posts but do NOT send to WhatsApp)"
-        type: boolean
-        default: true
+      mode:
+        description: "live = really post to WhatsApp | dry = preview only"
+        type: choice
+        options: ["live", "dry"]
+        default: "live"
       sources:
         description: "What to watch"
         type: choice
@@ -21,9 +22,8 @@ on:
         description: "Max posts in this run"
         default: "5"
       force:
-        description: "Ignore quiet hours"
-        type: boolean
-        default: false
+        description: "Ignore quiet hours (type: yes)"
+        default: "no"
 
 permissions:
   contents: write
@@ -50,7 +50,9 @@ jobs:
         env:
           WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
           WHAPI_CHANNEL: ${{ secrets.WHAPI_CHANNEL }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true && '1' || '0' }}
+          # A choice input arrives as a plain string, which avoids the
+          # boolean-checkbox ambiguity that made manual runs silently dry.
+          DRY_RUN: ${{ inputs.mode == 'dry' && '1' || '0' }}
           SOURCES: ${{ inputs.sources || 'templates,blog' }}
           MAX_POSTS: ${{ inputs.max_posts || '5' }}
           SCAN_PAGES: "3"
@@ -58,7 +60,7 @@ jobs:
           ACTIVE_FROM: "8"
           ACTIVE_TO: "21"
         run: |
-          python slideegg_daily.py ${{ (github.event_name == 'workflow_dispatch' && inputs.force == true) && '--force' || '' }}
+          python slideegg_daily.py ${{ inputs.force == 'yes' && '--force' || '' }}
 
       - name: Commit state
         if: always()
