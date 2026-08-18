@@ -541,8 +541,16 @@ def main():
             return 1
 
     now = dt.datetime.now(IST)
+    if DRY_RUN:
+        why = ("WHAPI_TOKEN is empty or missing" if not TOKEN
+               else "DRY_RUN=1 was requested")
+        reason = f" (dry because: {why})"
+    else:
+        reason = ""
     log(f"run start | {now:%Y-%m-%d %H:%M} IST | sources={','.join(sorted(SOURCES))} "
-        f"| dry_run={DRY_RUN}")
+        f"| dry_run={DRY_RUN}{reason}")
+    log(f"env check | WHAPI_TOKEN {'set, ' + str(len(TOKEN)) + ' chars' if TOKEN else 'NOT SET'} "
+        f"| DRY_RUN env={os.environ.get('DRY_RUN', '(unset)')!r}")
 
     if not (ACTIVE_FROM <= now.hour < ACTIVE_TO) and "--force" not in sys.argv:
         log(f"quiet hours (posting runs {ACTIVE_FROM}:00-{ACTIVE_TO}:00 IST) — "
