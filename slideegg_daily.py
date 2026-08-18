@@ -78,10 +78,18 @@ SOURCES = {s.strip().lower() for s in
 # refreshes would be announced as new.
 MAX_AGE_DAYS = int(os.environ.get("MAX_AGE_DAYS", "14"))
 
-# Quiet hours (IST, 24h). Outside this window the run exits without posting;
-# anything published meanwhile is picked up at the next allowed run.
-ACTIVE_FROM = int(os.environ.get("ACTIVE_FROM", "8"))
-ACTIVE_TO = int(os.environ.get("ACTIVE_TO", "21"))
+# Quiet hours (IST, 24h). ACTIVE_FROM=0 / ACTIVE_TO=24 means round the clock.
+# Outside the window the run exits without posting; anything published
+# meanwhile is picked up at the next allowed run.
+ACTIVE_FROM = int(os.environ.get("ACTIVE_FROM", "0"))
+ACTIVE_TO = int(os.environ.get("ACTIVE_TO", "24"))
+
+# Hard ceiling on posts per calendar day (IST), across every run of that day.
+# SlideEgg publishes far more than this, so the day's quota goes to the NEWEST
+# items and the overflow is retired rather than queued — otherwise the channel
+# would fall permanently behind and start announcing week-old templates.
+DAILY_LIMIT = int(os.environ.get("DAILY_LIMIT", "8"))
+DAILY_FILE = STATE_DIR / "daily.json"
 
 # URL path segments that are category/listing pages, not individual templates
 NON_TEMPLATE_PAT = re.compile(
@@ -552,6 +560,24 @@ def load_seen():
     return set()
 
 
+def load_daily(today):
+    """How many posts have already gone out today (IST)."""
+    if DAILY_FILE.exists():
+        try:
+            d = json.loads(DAILY_FILE.read_text())
+            if d.get("date") == str(today):
+                return int(d.get("posted", 0))
+        except (ValueError, OSError, TypeError):
+            log("! daily.json unreadable, treating today as empty")
+    return 0
+
+
+def save_daily(today, posted):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    DAILY_FILE.write_text(json.dumps(
+        {"date": str(today), "posted": posted, "limit": DAILY_LIMIT}, indent=1))
+
+
 def save_seen(seen):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     urls = sorted(seen)
@@ -636,15 +662,36 @@ def main():
              "recorded": len(known_urls), "posted": 0}, indent=1))
         return 0
 
-    # oldest-first within each source, so the channel reads chronologically
-    fresh = [it for it in reversed(listing) if it["url"] not in seen]
-    fresh_blog = [u for u in reversed(blog_urls) if u not in seen]
+    today = now.date()
+    posted_today = load_daily(today)
+    room = max(0, DAILY_LIMIT - posted_today)
+    log(f"daily budget: {posted_today}/{DAILY_LIMIT} used, {room} left")
+
+    # newest-first: if the day's quota is tight, the freshest items win
+    fresh = [it for it in listing if it["url"] not in seen]
+    fresh_blog = [u for u in blog_urls if u not in seen]
     log(f"{len(fresh)} new template(s), {len(fresh_blog)} unseen blog url(s)")
+
+    if room == 0:
+        log("daily limit already reached — retiring today's leftovers so the "
+            "channel does not fall behind, and stopping")
+        seen.update(it["url"] for it in fresh)
+        seen.update(fresh_blog)
+        if not DRY_RUN:
+            save_seen(seen)
+        LOG_FILE.write_text(json.dumps(
+            {"run": now.isoformat(), "mode": "dry" if DRY_RUN else "live",
+             "daily_posted": posted_today, "daily_limit": DAILY_LIMIT,
+             "posted": 0, "retired_over_limit": len(fresh) + len(fresh_blog)},
+            indent=1))
+        return 0
+
+    budget = min(MAX_POSTS, room)
 
     # Blog posts need their publish date checked before they count as new.
     blog_items, blog_skipped = [], []
     for u in fresh_blog:
-        if len(fresh) + len(blog_items) >= MAX_POSTS:
+        if len(blog_items) >= budget:
             break
         item = load_blog_post(u)
         if item:
@@ -652,12 +699,23 @@ def main():
         else:
             blog_skipped.append(u)
 
+    # blog first (it is rarer and higher value), then the newest templates
     queue = blog_items + fresh
-    to_post = queue[:MAX_POSTS]
-    if len(queue) > MAX_POSTS:
-        log(f"capping at {MAX_POSTS}; {len(queue) - MAX_POSTS} will go out next run")
+    to_post = queue[:budget]
+    overflow = queue[budget:]
 
-    # An old post that resurfaced is not worth re-checking every 30 minutes.
+    # If the day's quota runs out here, retire the overflow instead of queuing
+    # it; otherwise it just waits for the next run 15 minutes later.
+    retired = 0
+    if len(to_post) >= room and overflow:
+        retired = len(overflow)
+        log(f"daily limit reached this run — retiring {retired} item(s) "
+            f"rather than letting a backlog build")
+        seen.update(it["url"] for it in overflow)
+    elif overflow:
+        log(f"{len(overflow)} item(s) will go out on the next run")
+
+    # An old post that resurfaced is not worth re-checking every 15 minutes.
     seen.update(blog_skipped)
 
     posted, failed = [], []
@@ -681,13 +739,15 @@ def main():
 
     if not DRY_RUN:
         save_seen(seen)
+        save_daily(today, posted_today + len(posted))
 
     LOG_FILE.write_text(json.dumps(
         {"run": now.isoformat(), "mode": "dry" if DRY_RUN else "live",
          "why_dry": (None if not DRY_RUN else
                      ("WHAPI_TOKEN missing/empty" if not TOKEN else "DRY_RUN=1 requested")),
          "token_chars": len(TOKEN),
-         "dry_run_env": os.environ.get("DRY_RUN", "(unset)"),
+         "daily_posted": posted_today + len(posted), "daily_limit": DAILY_LIMIT,
+         "retired_over_limit": retired,
          "templates_scanned": len(listing), "blog_scanned": len(blog_urls),
          "new_templates": len(fresh), "new_blog": len(blog_items),
          "blog_skipped_as_refresh": len(blog_skipped),
