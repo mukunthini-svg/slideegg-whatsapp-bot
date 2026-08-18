@@ -1,6 +1,12 @@
 {
- "run": "2026-08-18T16:17:39.560034+05:30",
- "mode": "baseline",
- "recorded": 102,
- "posted": 0
+ "run": "2026-08-18T17:02:59.571266+05:30",
+ "mode": "dry",
+ "templates_scanned": 72,
+ "blog_scanned": 30,
+ "new_templates": 1,
+ "new_blog": 0,
+ "blog_skipped_as_refresh": 0,
+ "posted": 1,
+ "failed": 0,
+ "failed_urls": []
 }
