@@ -2,11 +2,10 @@ name: SlideEgg auto-post to WhatsApp Channel
 
 on:
   schedule:
-    # Every 15 minutes during 08:00-21:00 IST (02:30-15:30 UTC).
-    # Outside this window the script refuses to post anyway, so there is no
-    # point spending runner time there. GitHub queues scheduled runs under
+    # Every 15 minutes, round the clock. GitHub queues scheduled runs under
     # load, so the real gap is often 15-25 min rather than exactly 15.
-    - cron: "*/15 2-15 * * *"
+    # Volume is controlled by DAILY_LIMIT below, not by the schedule.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -21,7 +20,7 @@ on:
         default: "templates,blog"
       max_posts:
         description: "Max posts in this run"
-        default: "12"
+        default: "8"
       force:
         description: "Ignore quiet hours (type: yes)"
         default: "no"
@@ -55,13 +54,13 @@ jobs:
           # boolean-checkbox ambiguity that made manual runs silently dry.
           DRY_RUN: ${{ inputs.mode == 'dry' && '1' || '0' }}
           SOURCES: ${{ inputs.sources || 'templates,blog' }}
-          # Scheduled runs use 12. Nothing is ever dropped: whatever exceeds
-          # the cap is picked up by the next run 15 minutes later.
-          MAX_POSTS: ${{ inputs.max_posts || '12' }}
+          # Per-run cap. Under it sits DAILY_LIMIT, the real ceiling.
+          MAX_POSTS: ${{ inputs.max_posts || '8' }}
           SCAN_PAGES: "3"
           MAX_AGE_DAYS: "14"
-          ACTIVE_FROM: "8"
-          ACTIVE_TO: "21"
+          ACTIVE_FROM: "0"      # 0/24 = post round the clock
+          ACTIVE_TO: "24"
+          DAILY_LIMIT: "8"      # hard ceiling on posts per IST day
         run: |
           python slideegg_daily.py ${{ inputs.force == 'yes' && '--force' || '' }}
 
