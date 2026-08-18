@@ -1,6 +1,9 @@
 {
- "run": "2026-08-18T17:05:55.030868+05:30",
+ "run": "2026-08-18T17:09:59.716949+05:30",
  "mode": "dry",
+ "why_dry": "DRY_RUN=1 requested",
+ "token_chars": 32,
+ "dry_run_env": "1",
  "templates_scanned": 72,
  "blog_scanned": 30,
  "new_templates": 1,
