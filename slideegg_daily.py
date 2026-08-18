@@ -639,6 +639,10 @@ def main():
 
     LOG_FILE.write_text(json.dumps(
         {"run": now.isoformat(), "mode": "dry" if DRY_RUN else "live",
+         "why_dry": (None if not DRY_RUN else
+                     ("WHAPI_TOKEN missing/empty" if not TOKEN else "DRY_RUN=1 requested")),
+         "token_chars": len(TOKEN),
+         "dry_run_env": os.environ.get("DRY_RUN", "(unset)"),
          "templates_scanned": len(listing), "blog_scanned": len(blog_urls),
          "new_templates": len(fresh), "new_blog": len(blog_items),
          "blog_skipped_as_refresh": len(blog_skipped),
