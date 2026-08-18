@@ -2,10 +2,11 @@ name: SlideEgg auto-post to WhatsApp Channel
 
 on:
   schedule:
-    # Every 30 minutes during 08:00-21:00 IST (02:30-15:30 UTC).
-    # Outside this window the script would refuse to post anyway, so we
-    # simply don't spend GitHub Actions minutes there.
-    - cron: "0,30 2-15 * * *"
+    # Every 15 minutes during 08:00-21:00 IST (02:30-15:30 UTC).
+    # Outside this window the script refuses to post anyway, so there is no
+    # point spending runner time there. GitHub queues scheduled runs under
+    # load, so the real gap is often 15-25 min rather than exactly 15.
+    - cron: "*/15 2-15 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -20,7 +21,7 @@ on:
         default: "templates,blog"
       max_posts:
         description: "Max posts in this run"
-        default: "5"
+        default: "12"
       force:
         description: "Ignore quiet hours (type: yes)"
         default: "no"
@@ -54,7 +55,9 @@ jobs:
           # boolean-checkbox ambiguity that made manual runs silently dry.
           DRY_RUN: ${{ inputs.mode == 'dry' && '1' || '0' }}
           SOURCES: ${{ inputs.sources || 'templates,blog' }}
-          MAX_POSTS: ${{ inputs.max_posts || '5' }}
+          # Scheduled runs use 12. Nothing is ever dropped: whatever exceeds
+          # the cap is picked up by the next run 15 minutes later.
+          MAX_POSTS: ${{ inputs.max_posts || '12' }}
           SCAN_PAGES: "3"
           MAX_AGE_DAYS: "14"
           ACTIVE_FROM: "8"
