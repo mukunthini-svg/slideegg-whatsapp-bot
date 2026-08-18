@@ -373,38 +373,83 @@ def resolve_channel(raw):
             pass
 
     m = INVITE_RE.search(raw)
-    if not m:
-        log(f"! cannot read a channel invite code from {raw!r}")
-        return None
-    code = m.group(1)
+    code = m.group(1) if m else None
 
+    # /newsletters/{id} only accepts a numeric '...@newsletter' id, so an
+    # invite code has to be matched against the channels this number is in.
     try:
-        r = SESSION.get(f"{WHAPI_BASE}/newsletters/{code}",
+        r = SESSION.get(f"{WHAPI_BASE}/newsletters", params={"count": 100},
                         headers=whapi_auth(), timeout=60)
     except requests.RequestException as e:
-        log(f"! channel lookup failed: {e}")
+        log(f"! channel list failed: {e}")
         return None
 
     if r.status_code != 200:
-        log(f"! channel lookup HTTP {r.status_code}: {r.text[:300]}")
+        log(f"! channel list HTTP {r.status_code}: {r.text[:300]}")
         return None
 
     try:
         data = r.json()
     except ValueError:
-        log("! channel lookup returned non-JSON")
+        log("! channel list returned non-JSON")
         return None
 
-    node = data.get("newsletter") or data
-    cid = node.get("id") or node.get("jid") or node.get("chat_id")
-    if not cid:
-        log(f"! no channel id in response: {json.dumps(data)[:300]}")
+    if isinstance(data, dict):
+        for key in ("newsletters", "items", "chats"):
+            if key in data:          # an empty list here means "none", not "look elsewhere"
+                items = data[key]
+                break
+        else:
+            items = [data]
+    else:
+        items = data
+    if isinstance(items, dict):
+        items = [items]
+    if not isinstance(items, list):
+        log(f"! unexpected channel list shape: {json.dumps(data)[:300]}")
         return None
-    if not str(cid).endswith("@newsletter"):
+
+    def info(node):
+        meta = node.get("thread_metadata") or {}
+        cid = node.get("id") or node.get("jid") or node.get("chat_id") or ""
+        return {
+            "id": cid,
+            "name": (node.get("name") or node.get("subject")
+                     or meta.get("name") or "?"),
+            "role": (node.get("role") or node.get("invite")
+                     or meta.get("role") or ""),
+            "blob": json.dumps(node),
+        }
+
+    chans = [info(n) for n in items if isinstance(n, dict)]
+    log(f"  this number is in {len(chans)} channel(s):")
+    for c in chans:
+        log(f"    - {c['name']}  {c['id']}  {c['role']}")
+
+    if not chans:
+        log("! this WhatsApp number is not in any channel. Add it as a channel "
+            "admin in WhatsApp (channel -> Manage admins), then re-run.")
+        return None
+
+    pick = None
+    if code:                       # invite code appears somewhere in the entry
+        pick = next((c for c in chans if code in c["blob"]), None)
+    if not pick:                   # fall back to the channel name
+        pick = next((c for c in chans if "slideegg" in c["name"].lower()), None)
+    if not pick and len(chans) == 1:
+        pick = chans[0]
+    if not pick:
+        log("! could not tell which of these channels to post to. Set the "
+            "WHAPI_CHANNEL secret to the exact '...@newsletter' id above.")
+        return None
+
+    cid, name = str(pick["id"]), pick["name"]
+    if not cid:
+        log(f"! channel '{name}' has no id in the API response")
+        return None
+    if not cid.endswith("@newsletter"):
         cid = f"{cid}@newsletter"
 
-    name = (node.get("name") or node.get("subject")
-            or (node.get("thread_metadata") or {}).get("name") or "?")
     log(f"  resolved channel: {name} -> {cid}")
 
     STATE_DIR.mkdir(parents=True, exist_ok=True)
