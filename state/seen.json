@@ -1,6 +1,6 @@
 {
- "updated": "2026-08-18T16:17:43.605207+05:30",
- "count": 101,
+ "updated": "2026-08-18T17:19:24.477331+05:30",
+ "count": 102,
  "urls": [
   "https://www.slideegg.com/agricultural-waste-management",
   "https://www.slideegg.com/agro-waste",
@@ -50,6 +50,7 @@
   "https://www.slideegg.com/core-banking-transformation",
   "https://www.slideegg.com/cultural-heritage-preservation",
   "https://www.slideegg.com/data-lake-architecture-diagram",
+  "https://www.slideegg.com/data-storytelling",
   "https://www.slideegg.com/digital-twin",
   "https://www.slideegg.com/due-diligence",
   "https://www.slideegg.com/economic-order-quality",
@@ -103,6 +104,5 @@
   "https://www.slideegg.com/trade-finance",
   "https://www.slideegg.com/turmeric-cultivation",
   "https://www.slideegg.com/venipuncture"
- ],
- "note": "Test: data-storytelling removed so it re-posts once."
+ ]
 }
