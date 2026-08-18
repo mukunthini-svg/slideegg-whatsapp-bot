@@ -1,15 +1,15 @@
 {
- "run": "2026-08-18T17:19:04.074667+05:30",
+ "run": "2026-08-18T17:27:03.546770+05:30",
  "mode": "live",
  "why_dry": null,
  "token_chars": 32,
  "dry_run_env": "0",
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 1,
+ "new_templates": 0,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 1,
+ "posted": 0,
  "failed": 0,
  "failed_urls": []
 }
