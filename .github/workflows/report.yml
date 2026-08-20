@@ -49,6 +49,9 @@ jobs:
 
       - name: Send report
         env:
+          # Brevo is the primary route: Gmail App Passwords are blocked on
+          # Google Workspace accounts unless the domain admin enables them.
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
