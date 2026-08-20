@@ -8,10 +8,15 @@
 Reads state/posts.csv (the permanent record) plus state/last_run.json and
 state/health.json (to report errors and staleness).
 
+Sending: Brevo is used when BREVO_API_KEY is set, otherwise Gmail SMTP.
+Gmail App Passwords are unavailable on Google Workspace accounts unless the
+domain admin enables them, which is why Brevo is the default route here.
+
 Env vars:
-  MAIL_FROM          sending Gmail address, e.g. mukunthini@slideegg.com
-  MAIL_APP_PASSWORD  16-character Google App Password (NOT the login password)
+  BREVO_API_KEY      Brevo (ex-Sendinblue) API key — the preferred route
+  MAIL_FROM          verified sender address, e.g. mukunthini@slideegg.com
   MAIL_TO            recipient(s), comma separated. Default admin@slideegg.com
+  MAIL_APP_PASSWORD  only for the Gmail fallback (16-char App Password)
   SHEET_URL          optional link shown in the email (Google Sheet, once set up)
   REPO_URL           repository link, used for the CSV link and log links
 """
@@ -32,6 +37,7 @@ POSTS_CSV = STATE / "posts.csv"
 LAST_RUN = STATE / "last_run.json"
 HEALTH = STATE / "health.json"
 
+BREVO_KEY = os.environ.get("BREVO_API_KEY", "").strip()
 MAIL_FROM = os.environ.get("MAIL_FROM", "").strip()
 MAIL_PASS = os.environ.get("MAIL_APP_PASSWORD", "").strip()
 MAIL_TO = [a.strip() for a in
@@ -274,10 +280,56 @@ def build_weekly(now):
 
 # ---------------------------------------------------------------- sending
 
-def send(subject, html):
-    if not MAIL_FROM or not MAIL_PASS:
-        log("! MAIL_FROM / MAIL_APP_PASSWORD not set — cannot send")
+def send_brevo(subject, html):
+    """Send through Brevo's REST API."""
+    import requests
+    payload = {
+        "sender": {"name": "SlideEgg WhatsApp Bot", "email": MAIL_FROM},
+        "to": [{"email": a} for a in MAIL_TO],
+        "subject": subject,
+        "htmlContent": html,
+    }
+    try:
+        r = requests.post("https://api.brevo.com/v3/smtp/email",
+                          headers={"api-key": BREVO_KEY,
+                                   "content-type": "application/json",
+                                   "accept": "application/json"},
+                          json=payload, timeout=60)
+    except Exception as e:                       # noqa: BLE001
+        log(f"! Brevo request failed: {type(e).__name__}: {e}")
         return 1
+
+    if r.status_code in (200, 201, 202):
+        log(f"sent via Brevo to {', '.join(MAIL_TO)}: {subject}")
+        return 0
+
+    body = r.text[:400]
+    log(f"! Brevo HTTP {r.status_code}: {body}")
+    if r.status_code == 401:
+        log("! The API key was rejected. Create a fresh one in Brevo under "
+            "SMTP & API -> API keys, and update the BREVO_API_KEY secret.")
+    elif "sender" in body.lower():
+        log(f"! Brevo will not send from {MAIL_FROM} until that address is "
+            "verified. In Brevo: Senders & IP -> Senders -> Add a sender, then "
+            "click the confirmation link Brevo emails to that address.")
+    return 1
+
+
+def send(subject, html):
+    if not MAIL_FROM:
+        log("! MAIL_FROM is not set — cannot send")
+        return 1
+
+    if BREVO_KEY:
+        return send_brevo(subject, html)
+
+    if not MAIL_PASS:
+        log("! No BREVO_API_KEY and no MAIL_APP_PASSWORD — cannot send. "
+            "Set BREVO_API_KEY (recommended: Gmail App Passwords are blocked "
+            "on Google Workspace accounts).")
+        return 1
+
+    log("BREVO_API_KEY not set, falling back to Gmail SMTP")
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = MAIL_FROM

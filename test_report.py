@@ -129,6 +129,61 @@ check("html in a title is escaped", "&lt;script&gt;" in html and "<script>" not 
 check("no credentials -> send fails loudly instead of pretending",
       R.send("x", "<p>y</p>") == 1)
 
+print("\nBREVO SENDING")
+
+
+class FakePost:
+    def __init__(self, status, text=""):
+        self.status, self.text_body = status, text
+        self.calls = []
+
+    def post(self, url, headers=None, json=None, timeout=None):
+        self.calls.append({"url": url, "headers": headers, "json": json})
+        return type("R", (), {"status_code": self.status, "text": self.text_body})()
+
+
+import requests as _rq
+_real_post = _rq.post
+
+R.MAIL_FROM = "mukunthini@slideegg.com"
+R.MAIL_TO = ["admin@slideegg.com"]
+R.BREVO_KEY = "test-key"
+
+fp = FakePost(201)
+_rq.post = fp.post
+check("brevo 201 -> success", R.send("Subj", "<p>body</p>") == 0)
+call = fp.calls[0]
+check("hits the Brevo endpoint", call["url"] == "https://api.brevo.com/v3/smtp/email", call["url"])
+check("api key sent in the header", call["headers"].get("api-key") == "test-key")
+check("sender is the configured address",
+      call["json"]["sender"]["email"] == "mukunthini@slideegg.com")
+check("recipient is admin@slideegg.com",
+      call["json"]["to"] == [{"email": "admin@slideegg.com"}])
+check("html body is sent", call["json"]["htmlContent"] == "<p>body</p>")
+check("subject is sent", call["json"]["subject"] == "Subj")
+
+fp = FakePost(401, '{"message":"Key not found"}')
+_rq.post = fp.post
+check("brevo 401 -> failure, not silent success", R.send("s", "<p>b</p>") == 1)
+
+fp = FakePost(400, '{"message":"Sender not valid, please add sender first"}')
+_rq.post = fp.post
+check("unverified sender -> failure", R.send("s", "<p>b</p>") == 1)
+
+
+def boom(*a, **k):
+    raise ConnectionError("network down")
+
+
+_rq.post = boom
+check("network error -> failure, no crash", R.send("s", "<p>b</p>") == 1)
+
+_rq.post = _real_post
+R.BREVO_KEY = ""
+R.MAIL_PASS = ""
+check("brevo key removed -> falls back and still fails loudly",
+      R.send("s", "<p>b</p>") == 1)
+
 for f in (R.POSTS_CSV, R.LAST_RUN, R.HEALTH):
     f.unlink(missing_ok=True)
 print("\nALL PASS" if not fails else f"\nFAILURES: {fails}")
