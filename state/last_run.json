@@ -1,29 +1,8 @@
 {
- "run": "2026-08-20T11:14:19.602350+05:30",
+ "run": "2026-08-20T11:33:56.985040+05:30",
  "mode": "live",
- "why_dry": null,
- "token_chars": 32,
  "daily_posted": 8,
  "daily_limit": 8,
- "retired_over_limit": 2,
- "diagnostics": {
-  "page1_top3": [
-   "student-self-care",
-   "healthcare-performance-dashboard",
-   "clinical-preceptorship"
-  ],
-  "page1_count": 24,
-  "page1_http_date": "Thu, 20 Aug 2026 05:44:19 GMT",
-  "page1_age": null,
-  "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 356645
- },
- "templates_scanned": 72,
- "blog_scanned": 30,
- "new_templates": 10,
- "new_blog": 0,
- "blog_skipped_as_refresh": 0,
- "posted": 8,
- "failed": 0,
- "failed_urls": []
+ "posted": 0,
+ "retired_over_limit": 0
 }
