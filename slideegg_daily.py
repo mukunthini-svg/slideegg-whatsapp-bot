@@ -577,6 +577,42 @@ def load_seen():
 
 HEALTH_FILE = STATE_DIR / "health.json"
 
+# The permanent record of everything ever published to the channel. This is
+# the "sheet" — GitHub renders it as a table, and it imports straight into
+# Excel or Google Sheets. Columns are split out (year / month / week) so that
+# pivoting by period needs no formulas.
+POSTS_CSV = STATE_DIR / "posts.csv"
+CSV_HEADER = ["date", "time_ist", "year", "month", "month_name", "week",
+              "day_name", "type", "title", "url", "image_url"]
+
+
+def record_post(now, item):
+    """Append one delivered post to the CSV record."""
+    import csv as _csv
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    new_file = not POSTS_CSV.exists() or POSTS_CSV.stat().st_size == 0
+    try:
+        with POSTS_CSV.open("a", newline="", encoding="utf-8") as fh:
+            w = _csv.writer(fh)
+            if new_file:
+                w.writerow(CSV_HEADER)
+            w.writerow([
+                now.strftime("%Y-%m-%d"),
+                now.strftime("%H:%M"),
+                now.year,
+                now.month,
+                now.strftime("%B"),
+                f"{now.isocalendar()[0]}-W{now.isocalendar()[1]:02d}",
+                now.strftime("%A"),
+                item.get("kind", "template"),
+                item.get("title", ""),
+                item.get("url", ""),
+                item.get("image", "") or "",
+            ])
+    except OSError as e:
+        # never let bookkeeping break posting
+        log(f"  ! could not write posts.csv: {e}")
+
 # If nothing new has been detected for this long, something is wrong even
 # though every run reports success. Both silent failures this system has had
 # — a stale cached page, and a run that quietly went into preview mode —
@@ -792,6 +828,7 @@ def main():
             if whapi_post(item):
                 posted.append(item["url"])
                 seen.add(item["url"])
+                record_post(dt.datetime.now(IST), item)
             else:
                 failed.append(item["url"])
             time.sleep(8)  # gentle pacing between channel posts
