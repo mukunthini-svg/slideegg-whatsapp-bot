@@ -61,6 +61,10 @@ jobs:
           ACTIVE_FROM: "0"      # 0/24 = post round the clock
           ACTIVE_TO: "24"
           DAILY_LIMIT: "8"      # hard ceiling on posts per IST day
+          # If nothing new is detected for this many hours the run is failed
+          # on purpose, which turns the run red and emails the repo owner.
+          # Posting happens before this check, so it can never block a good run.
+          ALERT_AFTER_HOURS: "24"
         run: |
           python slideegg_daily.py ${{ inputs.force == 'yes' && '--force' || '' }}
 
