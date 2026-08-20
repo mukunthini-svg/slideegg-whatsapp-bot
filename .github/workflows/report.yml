@@ -1,0 +1,67 @@
+name: SlideEgg email reports
+
+on:
+  schedule:
+    # Daily summary at 21:00 IST (15:30 UTC)
+    - cron: "30 15 * * *"
+    # Weekly report on Monday at 09:00 IST (03:30 UTC)
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Which report to send"
+        type: choice
+        options: ["daily", "weekly"]
+        default: "daily"
+      preview:
+        description: "preview = build it but do NOT send"
+        type: choice
+        options: ["send", "preview"]
+        default: "send"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slideegg-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Decide which report this run is
+        id: which
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "kind=${{ inputs.kind }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "30 3 * * 1" ]; then
+            echo "kind=weekly" >> $GITHUB_OUTPUT
+          else
+            echo "kind=daily" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send report
+        env:
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          SHEET_URL: ${{ secrets.SHEET_URL }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          python report.py --${{ steps.which.outputs.kind }} \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.preview == 'preview') && '--dry-run' || '' }}
+
+      - name: Upload preview
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.preview == 'preview'
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-preview
+          path: report_preview.html
+          if-no-files-found: ignore
