@@ -184,15 +184,30 @@ def parse_listing(html_text):
     return items
 
 
+DIAG = {}
+
+
 def scan_latest(pages):
     """Scan the newest-first listing pages. Returns items in newest-first order."""
     out, seen_urls = [], set()
     for n in range(1, pages + 1):
         url = LATEST if n == 1 else f"{LATEST}?page={n}"
-        r = get(url)
+        # Defeat any intermediary cache: without this a stale copy of page 1
+        # makes the run look healthy while silently finding nothing new.
+        r = get(url, headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
         if not r:
             break
         found = parse_listing(r.text)
+        if n == 1:
+            DIAG["page1_top3"] = [it["url"].rstrip("/").split("/")[-1] for it in found[:3]]
+            DIAG["page1_count"] = len(found)
+            DIAG["page1_http_date"] = r.headers.get("date")
+            DIAG["page1_age"] = r.headers.get("age")
+            DIAG["page1_x_cache"] = r.headers.get("x-cache")
+            DIAG["page1_bytes"] = len(r.content)
+            log(f"  page 1 newest: {DIAG['page1_top3']}")
+            log(f"  page 1 served: date={DIAG['page1_http_date']} "
+                f"age={DIAG['page1_age']} x-cache={DIAG['page1_x_cache']}")
         log(f"  page {n}: {len(found)} templates")
         if not found:
             break
@@ -748,6 +763,7 @@ def main():
          "token_chars": len(TOKEN),
          "daily_posted": posted_today + len(posted), "daily_limit": DAILY_LIMIT,
          "retired_over_limit": retired,
+         "diagnostics": DIAG,
          "templates_scanned": len(listing), "blog_scanned": len(blog_urls),
          "new_templates": len(fresh), "new_blog": len(blog_items),
          "blog_skipped_as_refresh": len(blog_skipped),

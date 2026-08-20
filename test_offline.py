@@ -14,6 +14,7 @@ import sys
 os.environ["DRY_RUN"] = "1"
 os.environ["MAX_POSTS"] = "5"
 os.environ["SCAN_PAGES"] = "2"
+os.environ["DAILY_LIMIT"] = "50"
 os.environ["ACTIVE_FROM"] = "0"
 os.environ["ACTIVE_TO"] = "24"
 os.environ["SOURCES"] = "templates"
@@ -90,6 +91,7 @@ JPG = b"\xff\xd8\xff\xe0" + b"\x00" * 4000
 class FakeResp:
     def __init__(self, body, status=200, url=""):
         self.status_code, self.url = status, url
+        self.headers = {}
         self._b = body.encode() if isinstance(body, str) else body
 
     @property
@@ -157,9 +159,10 @@ check("malformed JSON-LD does not crash",
 check("page with no JSON-LD returns empty", S.parse_listing("<html></html>") == [])
 
 print("\nPOST ORDER / ENRICHMENT")
-check("posted oldest-first (page-2 item first)",
-      fetched.index("https://www.slideegg.com/key-financial-assumptions")
-      < fetched.index("https://www.slideegg.com/data-storytelling"))
+# newest-first: when the daily quota is tight the freshest items must win
+check("posted newest-first (page-1 item before page-2)",
+      fetched.index("https://www.slideegg.com/data-storytelling")
+      < fetched.index("https://www.slideegg.com/key-financial-assumptions"))
 
 item = S.enrich({"url": "https://www.slideegg.com/data-storytelling",
                  "title": "listing title", "image": None})
@@ -213,10 +216,14 @@ chan_cache.unlink(missing_ok=True)
 real_session, real_token = S.SESSION, S.TOKEN
 S.TOKEN = "fake-token"
 
-S.SESSION = fs = FakeSession(body={"id": "120363301234567890@newsletter", "name": "SlideEgg Presentation Hub"})
+S.SESSION = fs = FakeSession(body={"newsletters": [
+    {"id": "120363301234567890@newsletter", "name": "SlideEgg Presentation Hub",
+     "invite": "https://whatsapp.com/channel/0029Vb7WIkq35fLwXKie5521"},
+    {"id": "120363309999999999@newsletter", "name": "Unrelated Channel"}]})
 got = S.resolve_channel("https://whatsapp.com/channel/0029Vb7WIkq35fLwXKie5521")
-check("invite link -> channel id", got == "120363301234567890@newsletter", got)
-check("hit /newsletters/<code>", fs.calls[0].endswith("/newsletters/0029Vb7WIkq35fLwXKie5521"), fs.calls)
+check("invite link -> channel id via list", got == "120363301234567890@newsletter", got)
+check("lists /newsletters (not /newsletters/<code>, which rejects invite codes)",
+      fs.calls[0].endswith("/newsletters"), fs.calls)
 
 S.SESSION = fs2 = FakeSession()
 check("second call cached, no API hit",
@@ -227,8 +234,9 @@ S.SESSION = fs3 = FakeSession()
 check("resolved id passes through", S.resolve_channel("1203633099@newsletter") == "1203633099@newsletter" and not fs3.calls)
 
 chan_cache.unlink(missing_ok=True)
-S.SESSION = FakeSession(body={"newsletter": {"id": "120363300000000001", "subject": "X"}})
-check("nested payload + missing suffix handled",
+S.SESSION = FakeSession(body={"newsletters": [
+    {"id": "120363300000000001", "name": "SlideEgg Solo"}]})
+check("missing @newsletter suffix is added",
       S.resolve_channel("0029Vb7WIkq35fLwXKie5599") == "120363300000000001@newsletter")
 
 chan_cache.unlink(missing_ok=True)
@@ -236,7 +244,15 @@ S.SESSION = FakeSession(status=404, body={"error": "not found"})
 check("404 returns None", S.resolve_channel("0029Vb7WIkq35fLwXKie5588") is None)
 
 chan_cache.unlink(missing_ok=True)
-check("garbage invite rejected", S.resolve_channel("nope") is None)
+S.SESSION = FakeSession(body={"newsletters": []})
+check("number in no channels -> None (needs admin rights)",
+      S.resolve_channel("0029Vb7WIkq35fLwXKie5521") is None)
+
+chan_cache.unlink(missing_ok=True)
+S.SESSION = FakeSession(body={"newsletters": [
+    {"id": "1@newsletter", "name": "A"}, {"id": "2@newsletter", "name": "B"}]})
+check("ambiguous channels -> None rather than guessing",
+      S.resolve_channel("0029Vb7WIkq35fLwXKie5521") is None)
 check("default channel = SlideEgg Presentation Hub invite",
       S.DEFAULT_CHANNEL == "0029Vb7WIkq35fLwXKie5521")
 
