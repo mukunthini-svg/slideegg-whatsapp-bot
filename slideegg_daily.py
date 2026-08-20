@@ -575,6 +575,48 @@ def load_seen():
     return set()
 
 
+HEALTH_FILE = STATE_DIR / "health.json"
+
+# If nothing new has been detected for this long, something is wrong even
+# though every run reports success. Both silent failures this system has had
+# — a stale cached page, and a run that quietly went into preview mode —
+# looked exactly like "no new content", so the only reliable alarm is time.
+ALERT_AFTER_HOURS = int(os.environ.get("ALERT_AFTER_HOURS", "24"))
+
+
+def load_health():
+    if HEALTH_FILE.exists():
+        try:
+            return json.loads(HEALTH_FILE.read_text())
+        except (ValueError, OSError):
+            pass
+    return {}
+
+
+def update_health(now, found_new):
+    h = load_health()
+    if found_new:
+        h["last_new_item_at"] = now.isoformat()
+    h.setdefault("last_new_item_at", now.isoformat())
+    h["last_checked_at"] = now.isoformat()
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    HEALTH_FILE.write_text(json.dumps(h, indent=1))
+    return h
+
+
+def hours_since_new(now, health):
+    ts = health.get("last_new_item_at")
+    if not ts:
+        return 0.0
+    try:
+        then = dt.datetime.fromisoformat(ts)
+    except ValueError:
+        return 0.0
+    if then.tzinfo is None:
+        then = then.replace(tzinfo=IST)
+    return (now - then).total_seconds() / 3600.0
+
+
 def load_daily(today):
     """How many posts have already gone out today (IST)."""
     if DAILY_FILE.exists():
@@ -697,9 +739,11 @@ def main():
         LOG_FILE.write_text(json.dumps(
             {"run": now.isoformat(), "mode": "dry" if DRY_RUN else "live",
              "daily_posted": posted_today, "daily_limit": DAILY_LIMIT,
-             "posted": 0, "retired_over_limit": len(fresh) + len(fresh_blog)},
-            indent=1))
-        return 0
+             "posted": 0, "retired_over_limit": len(fresh) + len(fresh_blog),
+             "diagnostics": DIAG}, indent=1))
+        # today's quota is spent, which is a healthy state — but the watchdog
+        # still needs to see whether the site is producing anything at all
+        return watchdog(now, found_new=bool(fresh or fresh_blog), failed=0)
 
     budget = min(MAX_POSTS, room)
 
@@ -771,6 +815,41 @@ def main():
          "failed_urls": failed[:20]}, indent=1))
 
     log(f"done | posted={len(posted)} failed={len(failed)}")
+
+    return watchdog(now, found_new=bool(fresh or blog_items), failed=len(failed))
+
+
+def watchdog(now, found_new, failed):
+    """Fail the run when the channel has gone quiet for too long.
+
+    A failed run turns the GitHub Actions run red and emails the repository
+    owner, which is the whole point: every silent failure so far reported
+    success. Posting has already happened by the time this runs, so raising
+    the alarm can never stop a good run from delivering.
+    """
+    health = update_health(now, found_new) if not DRY_RUN else load_health()
+    quiet = hours_since_new(now, health)
+
+    if failed:
+        log(f"! {failed} post(s) failed this run")
+        return 1
+
+    if quiet > ALERT_AFTER_HOURS:
+        log("=" * 60)
+        log(f"! WATCHDOG: nothing new detected for {quiet:.1f} hours "
+            f"(limit {ALERT_AFTER_HOURS}h).")
+        log("! Every run has reported success, so check these in order:")
+        log("!  1. Open slideegg.com/latest-powerpoint-templates in a browser")
+        log("!     and compare the newest titles with diagnostics.page1_top3")
+        log("!     in state/last_run.json. Different = the runner is being")
+        log("!     served a stale cached page.")
+        log("!  2. Check mode is 'live' and why_dry is null.")
+        log("!  3. Check the Whapi number is still linked and still a channel admin.")
+        log("=" * 60)
+        return 1
+
+    log(f"watchdog ok | {quiet:.1f}h since the last new item "
+        f"(alerts after {ALERT_AFTER_HOURS}h)")
     return 0
 
 
