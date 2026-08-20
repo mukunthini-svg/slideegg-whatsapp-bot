@@ -1,8 +1,20 @@
 {
- "run": "2026-08-20T11:33:56.985040+05:30",
+ "run": "2026-08-20T11:40:28.121994+05:30",
  "mode": "live",
  "daily_posted": 8,
  "daily_limit": 8,
  "posted": 0,
- "retired_over_limit": 0
+ "retired_over_limit": 0,
+ "diagnostics": {
+  "page1_top3": [
+   "student-self-care",
+   "healthcare-performance-dashboard",
+   "clinical-preceptorship"
+  ],
+  "page1_count": 24,
+  "page1_http_date": "Thu, 20 Aug 2026 06:10:28 GMT",
+  "page1_age": null,
+  "page1_x_cache": "Miss from cloudfront",
+  "page1_bytes": 356645
+ }
 }
