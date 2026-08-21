@@ -1,5 +1,5 @@
 {
- "run": "2026-08-21T21:23:36.524350+05:30",
+ "run": "2026-08-21T22:35:49.949884+05:30",
  "mode": "live",
  "daily_posted": 8,
  "daily_limit": 8,
@@ -12,7 +12,7 @@
    "medication-management"
   ],
   "page1_count": 24,
-  "page1_http_date": "Fri, 21 Aug 2026 15:53:36 GMT",
+  "page1_http_date": "Fri, 21 Aug 2026 17:05:50 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 355957
