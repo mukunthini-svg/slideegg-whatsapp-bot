@@ -1,29 +1,29 @@
 {
- "run": "2026-08-21T13:26:32.828872+05:30",
+ "run": "2026-08-21T15:24:43.817409+05:30",
  "mode": "live",
  "why_dry": null,
  "token_chars": 32,
- "daily_posted": 0,
+ "daily_posted": 8,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
-   "student-self-care",
-   "healthcare-performance-dashboard",
-   "clinical-preceptorship"
+   "nursing-staffing-matrix",
+   "nurse-staffing-model",
+   "medication-management"
   ],
   "page1_count": 24,
-  "page1_http_date": "Fri, 21 Aug 2026 07:56:33 GMT",
+  "page1_http_date": "Fri, 21 Aug 2026 09:54:44 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 356645
+  "page1_bytes": 355957
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 0,
+ "new_templates": 8,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 0,
+ "posted": 8,
  "failed": 0,
  "failed_urls": []
 }
