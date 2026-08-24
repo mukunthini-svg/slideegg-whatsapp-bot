@@ -1,5 +1,5 @@
 {
- "run": "2026-08-24T17:18:43.313103+05:30",
+ "run": "2026-08-24T19:54:32.880232+05:30",
  "mode": "live",
  "why_dry": null,
  "token_chars": 32,
@@ -8,22 +8,26 @@
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
+   "the-met-gala",
    "medical-journal-club",
-   "hospital-staff-onboarding",
-   "spy"
+   "hospital-staff-onboarding"
   ],
   "page1_count": 24,
-  "page1_http_date": "Mon, 24 Aug 2026 11:48:43 GMT",
+  "page1_http_date": "Mon, 24 Aug 2026 14:24:33 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 355505
+  "page1_bytes": 355344
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 0,
- "new_blog": 0,
+ "new_templates": 2,
+ "new_blog": 1,
  "blog_skipped_as_refresh": 0,
  "posted": 0,
- "failed": 0,
- "failed_urls": []
+ "failed": 3,
+ "failed_urls": [
+  "https://www.slideegg.com/blog/presentation-tips/how-to-choose-the-right-kpis-to-put-on-a-slide/",
+  "https://www.slideegg.com/the-met-gala",
+  "https://www.slideegg.com/emergency-medical-services"
+ ]
 }
