@@ -64,6 +64,9 @@ DEFAULT_CHANNEL = "0029Vb7WIkq35fLwXKie5521"
 
 TOKEN = os.environ.get("WHAPI_TOKEN", "").strip()
 CHANNEL = os.environ.get("WHAPI_CHANNEL", "").strip() or DEFAULT_CHANNEL
+# CHANNEL is replaced by the resolved '...@newsletter' id at run time; keep the
+# original link/invite so a rejected id can be resolved again from scratch.
+RAW_CHANNEL = CHANNEL
 MAX_POSTS = int(os.environ.get("MAX_POSTS", "5"))
 SCAN_PAGES = max(1, int(os.environ.get("SCAN_PAGES", "3")))
 DRY_RUN = os.environ.get("DRY_RUN", "").strip() == "1" or not TOKEN
@@ -480,14 +483,49 @@ def resolve_channel(raw):
     return cid
 
 
-def whapi_post(item):
-    """Send an image+caption post to the WhatsApp Channel. Returns True on success."""
-    caption = build_caption(item)
+_CHANNEL_REFRESHED = False
+
+
+def refresh_channel():
+    """The cached channel id was rejected — throw it away and resolve again.
+
+    The id is cached forever once resolved, so a channel that is recreated,
+    or an account that reconnects under a new session, would otherwise keep
+    posting to a dead id and failing on every run. Runs at most once per run.
+    Returns True only if a genuinely different id came back.
+    """
+    global CHANNEL, _CHANNEL_REFRESHED
+    if _CHANNEL_REFRESHED:
+        return False
+    _CHANNEL_REFRESHED = True
+
+    log("  the cached channel id was rejected — clearing it and resolving again")
+    try:
+        (STATE_DIR / "channel.json").unlink()
+    except OSError:
+        pass
+
+    fresh = resolve_channel(RAW_CHANNEL)
+    if not fresh:
+        log("  ! could not resolve the channel at all. Either this WhatsApp "
+            "number is no longer linked in Whapi, it is no longer an admin of "
+            "the channel, or the Whapi plan no longer includes Channels.")
+        return False
+    if fresh == CHANNEL:
+        log("  the same id came back, so the id is fine and the problem is "
+            "access: check the Whapi plan and that the number is still a "
+            "channel admin.")
+        return False
+    log(f"  channel id changed: {CHANNEL} -> {fresh}")
+    CHANNEL = fresh
+    return True
+
+
+def _send_once(item, caption, media):
+    """One full round of send attempts. Returns 'ok' | 'channel' | 'fail'."""
     headers = {"Authorization": f"Bearer {TOKEN}",
                "Content-Type": "application/json",
                "Accept": "application/json"}
-
-    media = fetch_media(item.get("image"))
 
     attempts = []
     if media:
@@ -507,11 +545,32 @@ def whapi_post(item):
             continue
         if r.status_code in (200, 201):
             log(f"  -> posted [{label}]: {item['title']}")
-            return True
-        log(f"  ! {label} HTTP {r.status_code}: {r.text[:250]}")
+            return "ok"
+
+        body = r.text[:250]
+        log(f"  ! {label} HTTP {r.status_code}: {body}")
+
+        # The channel id itself is being rejected — falling through to the
+        # text attempt cannot help, they all address the same channel.
+        if r.status_code == 404 and "channel not found" in body.lower():
+            return "channel"
         # auth/permission problems will not improve on the next attempt
         if r.status_code in (401, 403):
-            return False
+            return "fail"
+    return "fail"
+
+
+def whapi_post(item):
+    """Send an image+caption post to the WhatsApp Channel. Returns True on success."""
+    caption = build_caption(item)
+    media = fetch_media(item.get("image"))
+
+    outcome = _send_once(item, caption, media)
+    if outcome == "ok":
+        return True
+    if outcome == "channel" and refresh_channel():
+        # a different id came back, so this is worth exactly one more try
+        return _send_once(item, caption, media) == "ok"
     return False
 
 
