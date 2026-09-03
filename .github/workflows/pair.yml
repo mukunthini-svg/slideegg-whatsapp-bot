@@ -1,0 +1,91 @@
+name: Pair WhatsApp (run once)
+
+# Links the bot's WhatsApp number so it can post to the channel for free.
+#
+# Run this by hand, then WATCH THE LOG: it prints an 8-character pairing code
+# that has to be typed into WhatsApp within about two minutes. Nothing else in
+# this repository needs a human afterwards — the session is saved encrypted and
+# every scheduled run reuses it.
+#
+# Needs one secret: WA_SESSION_KEY (any long random passphrase). It is what the
+# saved session is encrypted with, so the file is useless to anyone reading this
+# public repository. Do not change it afterwards or the session stops opening.
+
+on:
+  workflow_dispatch:
+    inputs:
+      phone:
+        description: "Bot's WhatsApp number, digits only with country code (e.g. 919363904228)"
+        required: true
+      confirm:
+        description: "This replaces any existing session. Type: yes"
+        required: true
+        default: "no"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: slideegg-wa-session
+  cancel-in-progress: false
+
+jobs:
+  pair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the confirmation
+        if: inputs.confirm != 'yes'
+        run: |
+          echo "::error::Type 'yes' in the confirm box. Pairing replaces the current session."
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: baileys
+        run: npm ci
+
+      - name: Request a pairing code
+        working-directory: baileys
+        env:
+          WA_SESSION_KEY: ${{ secrets.WA_SESSION_KEY }}
+          WA_PAIR_NUMBER: ${{ inputs.phone }}
+          WA_CHANNEL_INVITE: ${{ secrets.WA_CHANNEL_INVITE }}
+        run: |
+          echo "Watch for the pairing code below, then on the phone open"
+          echo "WhatsApp -> Settings -> Linked devices -> Link a device"
+          echo "-> 'Link with phone number instead' -> type the code."
+          echo
+          node pair.js
+
+      - name: Save the session
+        if: success()
+        run: |
+          git config user.name  "slideegg-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -f state/wa-session.enc
+          if git diff --staged --quiet; then
+            echo "::error::No session was written — pairing did not complete."
+            exit 1
+          fi
+          git commit -m "wa: new paired session"
+          git pull --rebase --autostash || true
+          git push
+          echo "### Paired" >> $GITHUB_STEP_SUMMARY
+          echo "The encrypted session is saved. Enable the auto-post workflow." >> $GITHUB_STEP_SUMMARY
+
+      - name: If it failed
+        if: failure()
+        run: |
+          {
+            echo "### Pairing did not complete"
+            echo "Common causes:"
+            echo "- the code was not typed in before it expired — just run this again"
+            echo "- \`WA_SESSION_KEY\` secret is missing or shorter than 16 characters"
+            echo "- the number was typed with +, spaces or dashes (digits only)"
+          } >> $GITHUB_STEP_SUMMARY

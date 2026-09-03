@@ -2,10 +2,12 @@ name: SlideEgg auto-post to WhatsApp Channel
 
 on:
   schedule:
-    # Every 15 minutes, round the clock. GitHub queues scheduled runs under
-    # load, so the real gap is often 15-25 min rather than exactly 15.
-    # Volume is controlled by DAILY_LIMIT below, not by the schedule.
-    - cron: "*/15 * * * *"
+    # Hourly. Each run opens a WhatsApp connection from whichever GitHub runner
+    # picks up the job, so the IP changes every time; a real linked device does
+    # not reconnect every 15 minutes from a new address, and that pattern is
+    # what gets numbers flagged. Hourly keeps posts prompt without looking
+    # automated. Volume is capped by DAILY_LIMIT below, not by the schedule.
+    - cron: "7 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -43,11 +45,24 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install the WhatsApp sender
+        working-directory: baileys
+        run: npm ci
+
       - name: Run poster
         env:
+          # Transport. "baileys" is the free self-hosted route and needs
+          # WA_SESSION_KEY plus a session paired by the Pair workflow.
+          # "whapi" is the old paid API and needs WHAPI_TOKEN.
+          SENDER: ${{ vars.SENDER || 'baileys' }}
+          WA_SESSION_KEY: ${{ secrets.WA_SESSION_KEY }}
           WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
           WHAPI_CHANNEL: ${{ secrets.WHAPI_CHANNEL }}
           # A choice input arrives as a plain string, which avoids the
