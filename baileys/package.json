@@ -1,0 +1,14 @@
+{
+  "name": "slideegg-wa-baileys",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Free WhatsApp Channel sender for the SlideEgg auto-poster. Replaces the paid Whapi transport; everything else (scraping, dedupe, captions, logging) stays in slideegg_daily.py.",
+  "scripts": {
+    "pair": "node pair.js",
+    "test": "node test_session.js"
+  },
+  "dependencies": {
+    "@itsliaaa/baileys": "^0.3.18-final"
+  }
+}
