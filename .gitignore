@@ -1,3 +1,11 @@
 __pycache__/
 *.pyc
 .env
+
+# Node dependencies for the free WhatsApp sender — restored by `npm ci`.
+baileys/node_modules/
+
+# The unpacked WhatsApp credentials. These are the login in the clear; only
+# the encrypted state/wa-session.enc may ever be committed.
+.wa-auth/
+*.tmp

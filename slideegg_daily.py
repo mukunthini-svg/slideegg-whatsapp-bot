@@ -32,6 +32,7 @@ import base64
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import html
@@ -69,7 +70,33 @@ CHANNEL = os.environ.get("WHAPI_CHANNEL", "").strip() or DEFAULT_CHANNEL
 RAW_CHANNEL = CHANNEL
 MAX_POSTS = int(os.environ.get("MAX_POSTS", "5"))
 SCAN_PAGES = max(1, int(os.environ.get("SCAN_PAGES", "3")))
-DRY_RUN = os.environ.get("DRY_RUN", "").strip() == "1" or not TOKEN
+
+# How posts actually reach WhatsApp.
+#   "whapi"    paid HTTP API (gate.whapi.cloud)
+#   "baileys"  free, self-hosted: a Node helper holding one WhatsApp connection
+# Only the transport differs — finding items, de-duplicating, captions, images
+# and logging are identical either way.
+SENDER = os.environ.get("SENDER", "whapi").strip().lower()
+WA_SESSION_KEY = os.environ.get("WA_SESSION_KEY", "").strip()
+WA_SESSION_FILE = STATE_DIR / "wa-session.enc"
+
+
+def _credential_problem():
+    """Why this run cannot post, or None if it can."""
+    if SENDER == "baileys":
+        if not WA_SESSION_KEY:
+            return "WA_SESSION_KEY missing/empty"
+        if not WA_SESSION_FILE.exists():
+            return "no paired WhatsApp session — run the Pair workflow once"
+        return None
+    if SENDER != "whapi":
+        return f"unknown SENDER {SENDER!r} (expected 'whapi' or 'baileys')"
+    return "WHAPI_TOKEN missing/empty" if not TOKEN else None
+
+
+CREDENTIAL_PROBLEM = _credential_problem()
+DRY_RUN = (os.environ.get("DRY_RUN", "").strip() == "1"
+           or CREDENTIAL_PROBLEM is not None)
 
 # Which sources to watch: "templates", "blog", or "templates,blog"
 SOURCES = {s.strip().lower() for s in
@@ -574,6 +601,123 @@ def whapi_post(item):
     return False
 
 
+class BaileysSender:
+    """One Node process, one WhatsApp connection, for the whole run.
+
+    Reconnecting to WhatsApp for every individual post is exactly what an
+    abusive client looks like, so the helper is started once, kept open while
+    the run posts, and closed at the end — which is also when it saves the
+    rotated credentials back.
+    """
+
+    def __init__(self):
+        self.proc = None
+        self.channel = None
+        self.broken = None      # set once, so a dead sender is not retried
+        self._started = False
+
+    def _read(self):
+        """Read one JSON reply, or None if the helper has gone away."""
+        try:
+            line = self.proc.stdout.readline()
+        except (OSError, ValueError):
+            return None
+        if not line:
+            return None
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            log(f"  ! baileys said something unparseable: {line.strip()[:200]}")
+            return None
+
+    def start(self):
+        if self._started:
+            return self.broken is None
+        self._started = True
+
+        script = ROOT / "baileys" / "send.js"
+        if not script.exists():
+            self.broken = "baileys/send.js is missing"
+        elif not (ROOT / "baileys" / "node_modules").exists():
+            self.broken = "baileys dependencies are not installed (npm ci)"
+        if self.broken:
+            log(f"  ! baileys: {self.broken}")
+            return False
+
+        try:
+            self.proc = subprocess.Popen(
+                ["node", str(script)],
+                cwd=str(ROOT / "baileys"),
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                text=True, bufsize=1,
+                env={**os.environ,
+                     "WA_SESSION_KEY": WA_SESSION_KEY,
+                     "WA_CHANNEL_INVITE": RAW_CHANNEL})
+        except OSError as e:
+            self.broken = f"could not start node: {e}"
+            log(f"  ! baileys: {self.broken}")
+            return False
+
+        hello = self._read()
+        if not hello or not hello.get("ready"):
+            self.broken = (hello or {}).get("error", "sender exited before it was ready")
+            log(f"  ! baileys: {self.broken}")
+            self.close()
+            return False
+
+        self.channel = hello.get("channel")
+        log(f"  baileys ready, posting to {self.channel}")
+        return True
+
+    def post(self, item, caption, media):
+        if not self.start():
+            return False
+        try:
+            self.proc.stdin.write(json.dumps({"caption": caption, "media": media}) + "\n")
+            self.proc.stdin.flush()
+        except (BrokenPipeError, OSError) as e:
+            self.broken = f"sender went away mid-run: {e}"
+            log(f"  ! baileys: {self.broken}")
+            return False
+
+        res = self._read()
+        if res is None:
+            self.broken = "sender stopped responding"
+            log(f"  ! baileys: {self.broken}")
+            return False
+        if res.get("ok"):
+            log(f"  -> posted [{res.get('kind', 'sent')}]: {item['title']}")
+            return True
+        log(f"  ! baileys send failed: {res.get('error', 'unknown')}")
+        return False
+
+    def close(self):
+        """Shut the helper down so it saves the session on its way out."""
+        if not self.proc:
+            return
+        try:
+            self.proc.stdin.close()
+        except OSError:
+            pass
+        try:
+            # It only needs long enough to write the encrypted session back.
+            self.proc.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            log("  ! baileys did not exit; killing it")
+            self.proc.kill()
+        self.proc = None
+
+
+BAILEYS = BaileysSender()
+
+
+def send_post(item):
+    """Post one item to the channel using whichever transport is configured."""
+    if SENDER == "baileys":
+        return BAILEYS.post(item, build_caption(item), fetch_media(item.get("image")))
+    return whapi_post(item)
+
+
 def fetch_media(url):
     """Download the thumbnail and return a data URI.
 
@@ -884,13 +1028,21 @@ def main():
             print("-" * 60)
             posted.append(item["url"])
         else:
-            if whapi_post(item):
+            if send_post(item):
                 posted.append(item["url"])
                 seen.add(item["url"])
                 record_post(dt.datetime.now(IST), item)
             else:
                 failed.append(item["url"])
-            time.sleep(8)  # gentle pacing between channel posts
+            # The Baileys helper paces itself between sends; only the HTTP
+            # transport needs the wait here.
+            if SENDER != "baileys":
+                time.sleep(8)
+
+    # Closing the helper is what saves the rotated WhatsApp credentials, so it
+    # has to happen even when nothing was posted.
+    if SENDER == "baileys":
+        BAILEYS.close()
 
     if not DRY_RUN:
         save_seen(seen)
@@ -899,7 +1051,9 @@ def main():
     LOG_FILE.write_text(json.dumps(
         {"run": now.isoformat(), "mode": "dry" if DRY_RUN else "live",
          "why_dry": (None if not DRY_RUN else
-                     ("WHAPI_TOKEN missing/empty" if not TOKEN else "DRY_RUN=1 requested")),
+                     (CREDENTIAL_PROBLEM or "DRY_RUN=1 requested")),
+         "sender": SENDER,
+         "sender_error": (BAILEYS.broken if SENDER == "baileys" else None),
          "token_chars": len(TOKEN),
          "daily_posted": posted_today + len(posted), "daily_limit": DAILY_LIMIT,
          "retired_over_limit": retired,
