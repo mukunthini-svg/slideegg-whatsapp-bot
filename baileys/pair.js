@@ -52,25 +52,38 @@ async function main() {
   // before they are packed up.
   await new Promise(r => setTimeout(r, 8000));
   save();
+  try { sock.end?.(undefined); } catch { /* already closing */ }
 
-  // Confirm the channel is reachable now rather than discovering it is not on
-  // the first real post.
+  // WhatsApp closes the socket right after pairing and expects a reconnect.
+  // Doing that reconnect HERE, from the saved session, is the whole point:
+  // it proves the file that was just written actually logs in. Without this
+  // check a broken session looks like a success and only fails hours later,
+  // on a scheduled run nobody is watching.
+  log('verifying the saved session by reconnecting with it...');
+  await new Promise(r => setTimeout(r, 4000));
+
+  const { sock: verified } = await connect({ mode: 'restore' });
+  log('the saved session logs in correctly.');
+
+  // And confirm the channel is reachable, rather than discovering on the first
+  // real post that this number is no longer an admin.
+  let jid = null;
   try {
-    const jid = await resolveChannel(sock);
-    if (jid) {
-      console.log(`\nCHANNEL_JID=${jid}`);
-      log('channel is reachable — the bot is ready to post.');
-    } else {
-      log('! paired, but the SlideEgg channel was not found. Check that this ' +
-          'number is still an admin of the channel.');
-    }
+    jid = await resolveChannel(verified);
   } catch (e) {
-    log('channel check failed (pairing itself is fine):', e.message);
+    log('channel lookup failed:', e.message);
+  }
+  if (jid) {
+    console.log(`\nCHANNEL_JID=${jid}`);
+    log('channel is reachable — the bot is ready to post.');
+  } else {
+    log('! Paired and logged in, but the SlideEgg channel was not found. ' +
+        'Check that this number is still an admin of the channel.');
   }
 
-  await new Promise(r => setTimeout(r, 1500));
   save();
-  log('done. The session is stored encrypted; commit it and the bot can run.');
+  try { verified.end?.(undefined); } catch { /* already closing */ }
+  log('done. The encrypted session is ready to commit.');
   process.exit(0);
 }
 
