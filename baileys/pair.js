@@ -30,6 +30,7 @@ function banner(code) {
 }
 
 async function main() {
+  if (!NUMBER) { log('no phone digits given - falling back to QR pairing'); await import('./pair_qr.js'); return; }
   if (!/^\d{10,15}$/.test(NUMBER)) {
     throw new Error(
       `WA_PAIR_NUMBER must be digits only including the country code ` +
