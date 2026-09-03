@@ -7,6 +7,10 @@ import { AUTH_DIR, save, log } from './wa.js';
 
 let qrterm = null;
 try { qrterm = (await import('qrcode-terminal')).default; } catch { log('installing qrcode-terminal'); execSync('npm i --no-save --no-audit --no-fund qrcode-terminal@0.12.0', { stdio: 'inherit' }); qrterm = (await import('qrcode-terminal')).default; }
+let qrimg = null;
+try { qrimg = (await import('qrcode')).default; } catch { log('installing qrcode'); execSync('npm i --no-save --no-audit --no-fund qrcode', { stdio: 'inherit' }); qrimg = (await import('qrcode')).default; }
+const asciiQR = qrterm;
+qrterm = { generate: (str, opts) => { asciiQR.generate(str, opts); qrimg.toDataURL(str, { margin: 2, scale: 10 }).then((d) => console.log('QR_IMAGE_URI ' + d)).catch((e) => log('qr image failed', e.message)); } };
 
 const quiet = { level: 'silent', child: () => quiet, trace: () => {}, debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, fatal: () => {} };
 
