@@ -107,7 +107,15 @@ function attempt(state, saveCreds, version, n) {
   return new Promise((resolve) => {
     const sock = makeWASocket({
       version, auth: state, logger: quiet,
-      browser: Browsers.macOS('Desktop'),
+      // The browser identity is not cosmetic for the pairing-code flow.
+      // WhatsApp will hand out a code for any identity but only ACCEPTS the
+      // typed code for some of them — with 'macOS Desktop' every code came
+      // back "couldn't link device, get a new code", which reads like an
+      // expiry problem and is not one. Ubuntu/Chrome is the combination the
+      // pairing-code flow is known to accept.
+      browser: MODE === 'code'
+        ? ['Ubuntu', 'Chrome', '20.0.04']
+        : Browsers.macOS('Desktop'),
       syncFullHistory: false, markOnlineOnConnect: false,
     });
     sock.ev.on('creds.update', saveCreds);
