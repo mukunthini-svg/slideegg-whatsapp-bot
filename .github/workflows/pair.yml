@@ -2,21 +2,28 @@ name: Pair WhatsApp (run once)
 
 # Links the bot's WhatsApp number so it can post to the channel for free.
 #
-# Run this by hand, then WATCH THE LOG: it prints an 8-character pairing code
-# that has to be typed into WhatsApp within about two minutes. Nothing else in
-# this repository needs a human afterwards — the session is saved encrypted and
-# every scheduled run reuses it.
+# Run it, open the "Request a pairing code" step, and POINT THE PHONE CAMERA AT
+# THE QR ON YOUR SCREEN. Nothing has to be read out or typed, and WhatsApp keeps
+# issuing a fresh QR until the phone connects, so there is no race against a
+# two-minute expiry.
 #
 # Needs one secret: WA_SESSION_KEY (any long random passphrase). It is what the
-# saved session is encrypted with, so the file is useless to anyone reading this
-# public repository. Do not change it afterwards or the session stops opening.
+# saved session is encrypted with, so the committed session file is useless to
+# anyone reading this public repository. Do not change it afterwards or the
+# session stops opening.
 
 on:
   workflow_dispatch:
     inputs:
+      how:
+        description: "How to link the phone"
+        type: choice
+        options: ["qr (scan with the phone camera)", "code (type 8 characters)"]
+        default: "qr (scan with the phone camera)"
       phone:
-        description: "Bot's WhatsApp number, digits only with country code (e.g. 919363904228)"
-        required: true
+        description: "Only for 'code': bot's number, digits only (e.g. 919363904228)"
+        required: false
+        default: ""
       confirm:
         description: "This replaces any existing session. Type: yes"
         required: true
@@ -32,7 +39,9 @@ concurrency:
 jobs:
   pair:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # It keeps issuing a fresh QR until the phone connects, so it needs room for
+    # all of those tries plus the verification reconnect afterwards.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -54,14 +63,26 @@ jobs:
         working-directory: baileys
         env:
           WA_SESSION_KEY: ${{ secrets.WA_SESSION_KEY }}
+          WA_PAIR_MODE: ${{ startsWith(inputs.how, 'code') && 'code' || 'qr' }}
           WA_PAIR_NUMBER: ${{ inputs.phone }}
           WA_CHANNEL_INVITE: ${{ secrets.WA_CHANNEL_INVITE }}
         run: |
-          echo "Watch for the pairing code below, then on the phone open"
-          echo "WhatsApp -> Settings -> Linked devices -> Link a device"
-          echo "-> 'Link with phone number instead' -> type the code."
+          echo "Scroll down to the QR and point the phone camera at your screen:"
+          echo "  WhatsApp -> Linked devices -> Link a device -> aim at the QR"
+          echo
+          echo "A new QR replaces the old one every ~100 seconds until it links,"
+          echo "so always use the LAST one in this log. No hurry."
           echo
           node pair.js
+
+      - name: Attach the QR as an image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-code
+          path: qr.png
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Save the session
         if: success()
@@ -76,16 +97,18 @@ jobs:
           git commit -m "wa: new paired session"
           git pull --rebase --autostash || true
           git push
-          echo "### Paired" >> $GITHUB_STEP_SUMMARY
-          echo "The encrypted session is saved. Enable the auto-post workflow." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Paired"
+            echo "The encrypted session is saved. Enable the auto-post workflow."
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: If it failed
         if: failure()
         run: |
           {
             echo "### Pairing did not complete"
-            echo "Common causes:"
-            echo "- the code was not typed in before it expired — just run this again"
-            echo "- \`WA_SESSION_KEY\` secret is missing or shorter than 16 characters"
-            echo "- the number was typed with +, spaces or dashes (digits only)"
+            echo "- Nothing was scanned before the tries ran out — just run it again."
+            echo "- The QR too small to scan? Zoom in with Ctrl and +, or download"
+            echo "  **qr.png** from the Artifacts section of this run."
+            echo "- \`WA_SESSION_KEY\` secret missing or shorter than 16 characters."
           } >> $GITHUB_STEP_SUMMARY
