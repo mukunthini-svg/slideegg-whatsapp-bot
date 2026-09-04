@@ -38,15 +38,45 @@ const quiet = {
 
 const rule = (ch = '=') => console.log(ch.repeat(60));
 
+/**
+ * Draw the QR out of real block characters.
+ *
+ * The obvious route — qrcode-terminal — colours the modules with ANSI
+ * background codes, and GitHub's log viewer drops those: the QR came out as a
+ * run of blank lines. Printing '██' and '  ' instead makes the QR ordinary
+ * text, so it survives any log, any theme, and copy-paste. Two characters per
+ * module keeps it square, because a text cell is about twice as tall as wide.
+ */
+function qrBlocks(raw) {
+  const { modules } = QRCode.create(raw, { errorCorrectionLevel: 'L' });
+  const { size, data } = modules;
+  const QUIET = 2;                      // scanners need a margin of light
+  const wide = size + QUIET * 2;
+  const row = (y) => {
+    let out = '';
+    for (let x = -QUIET; x < size + QUIET; x++) {
+      const dark = x >= 0 && x < size && y >= 0 && y < size && data[y * size + x];
+      out += dark ? '██' : '  ';
+    }
+    return out;
+  };
+  const lines = [];
+  for (let y = -QUIET; y < size + QUIET; y++) lines.push(row(y));
+  return { lines, wide };
+}
+
 function showQR(raw, n) {
   console.log('');
   rule();
   console.log(`   SCAN THIS WITH THE PHONE   (QR ${n})`);
   rule();
   console.log('');
-  // Big blocks, not the compact half-block form: a camera pointed at a screen
-  // needs the modules to be several pixels across to lock on.
-  qrTerminal.generate(raw, { small: false }, (art) => console.log(art));
+  try {
+    console.log(qrBlocks(raw).lines.join('\n'));
+  } catch (e) {
+    log('block QR failed, falling back to the coloured one:', e.message);
+    qrTerminal.generate(raw, { small: false }, (art) => console.log(art));
+  }
   console.log('');
   console.log('   On the phone holding the bot number:');
   console.log('     WhatsApp -> Linked devices -> Link a device');
