@@ -9,6 +9,8 @@
     "test": "node test_session.js"
   },
   "dependencies": {
-    "@itsliaaa/baileys": "^0.3.18-final"
+    "@itsliaaa/baileys": "^0.3.18-final",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
   }
 }
