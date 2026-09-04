@@ -168,14 +168,19 @@ async function main() {
     ? `pairing by code for ${NUMBER.replace(/\d(?=\d{4})/g, '*')}`
     : 'pairing by QR — scan it off the screen with the phone');
 
-  fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
   log('WhatsApp web version', version.join('.'));
 
   let paired = null;
   for (let n = 1; n <= ATTEMPTS && !paired; n++) {
+    // Every attempt needs credentials of its own. Reusing the folder across
+    // attempts was the bug that made retries useless: the first attempt leaves
+    // half-registered creds behind, and WhatsApp answers the next connection
+    // with "device logged out" instead of a fresh code — so only the very
+    // first code was ever real, and the other seven failed instantly.
+    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    fs.mkdirSync(AUTH_DIR, { recursive: true });
+    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
     paired = await attempt(state, saveCreds, version, n);
   }
   if (!paired) {
