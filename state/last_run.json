@@ -1,10 +1,10 @@
 {
- "run": "2026-09-07T19:49:18.191447+05:30",
+ "run": "2026-09-07T20:48:31.922751+05:30",
  "mode": "live",
  "daily_posted": 8,
  "daily_limit": 8,
  "posted": 0,
- "retired_over_limit": 1,
+ "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
    "hangzhou-presentation",
@@ -12,7 +12,7 @@
    "capability-maturity-model-integration"
   ],
   "page1_count": 24,
-  "page1_http_date": "Mon, 07 Sep 2026 14:19:18 GMT",
+  "page1_http_date": "Mon, 07 Sep 2026 15:18:32 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 351154
