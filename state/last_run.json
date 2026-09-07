@@ -1,9 +1,12 @@
 {
- "run": "2026-09-07T23:51:27.929699+05:30",
+ "run": "2026-09-08T00:46:50.976638+05:30",
  "mode": "live",
- "daily_posted": 8,
+ "why_dry": null,
+ "sender": "baileys",
+ "sender_error": null,
+ "token_chars": 32,
+ "daily_posted": 0,
  "daily_limit": 8,
- "posted": 0,
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
@@ -12,9 +15,17 @@
    "capability-maturity-model-integration"
   ],
   "page1_count": 24,
-  "page1_http_date": "Mon, 07 Sep 2026 18:21:28 GMT",
+  "page1_http_date": "Mon, 07 Sep 2026 19:16:51 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 351154
- }
+ },
+ "templates_scanned": 72,
+ "blog_scanned": 30,
+ "new_templates": 0,
+ "new_blog": 0,
+ "blog_skipped_as_refresh": 0,
+ "posted": 0,
+ "failed": 0,
+ "failed_urls": []
 }
