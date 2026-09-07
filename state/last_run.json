@@ -1,13 +1,13 @@
 {
- "run": "2026-09-07T18:34:38.385768+05:30",
+ "run": "2026-09-07T18:50:48.953508+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
  "sender_error": null,
  "token_chars": 32,
- "daily_posted": 1,
+ "daily_posted": 8,
  "daily_limit": 8,
- "retired_over_limit": 0,
+ "retired_over_limit": 21,
  "diagnostics": {
   "page1_top3": [
    "hangzhou-presentation",
@@ -15,7 +15,7 @@
    "capability-maturity-model-integration"
   ],
   "page1_count": 24,
-  "page1_http_date": "Mon, 07 Sep 2026 13:04:38 GMT",
+  "page1_http_date": "Mon, 07 Sep 2026 13:20:49 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 351154
@@ -23,9 +23,9 @@
  "templates_scanned": 72,
  "blog_scanned": 30,
  "new_templates": 23,
- "new_blog": 1,
+ "new_blog": 5,
  "blog_skipped_as_refresh": 0,
- "posted": 1,
+ "posted": 7,
  "failed": 0,
  "failed_urls": []
 }
