@@ -901,7 +901,11 @@ def main():
         print(cid or "could not resolve")
         return 0 if cid else 1
 
-    if not DRY_RUN:
+    # Only the Whapi transport needs the channel id resolved up front, and it
+    # resolves it through Whapi's own API. The Baileys helper asks WhatsApp
+    # directly once it is connected, so running this first would just fail
+    # against a Whapi account that no longer exists and abort a healthy run.
+    if not DRY_RUN and SENDER == "whapi":
         CHANNEL = resolve_channel(CHANNEL)
         if not CHANNEL:
             log("! no usable channel id — aborting before posting")
