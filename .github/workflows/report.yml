@@ -1,18 +1,23 @@
-name: SlideEgg email reports
+name: SlideEgg weekly email
+
+# One email a week, Monday morning, listing what went out. Nothing else.
+#
+# The daily summary used to run here too and was removed on purpose: a mail
+# every evening saying "3 posts today" is noise once the channel is running
+# by itself. Problems do not wait for this schedule either — the posting
+# workflow sends its own alert the moment something breaks.
 
 on:
   schedule:
-    # Daily summary at 21:00 IST (15:30 UTC)
-    - cron: "30 15 * * *"
-    # Weekly report on Monday at 09:00 IST (03:30 UTC)
+    # Monday 09:00 IST (03:30 UTC)
     - cron: "30 3 * * 1"
   workflow_dispatch:
     inputs:
       kind:
-        description: "Which report to send"
+        description: "Which email to send by hand"
         type: choice
-        options: ["daily", "weekly"]
-        default: "daily"
+        options: ["weekly", "alert", "daily"]
+        default: "weekly"
       preview:
         description: "preview = build it but do NOT send"
         type: choice
@@ -36,25 +41,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Decide which report this run is
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Decide which email this run is
         id: which
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "kind=${{ inputs.kind }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.schedule }}" = "30 3 * * 1" ]; then
-            echo "kind=weekly" >> $GITHUB_OUTPUT
           else
-            echo "kind=daily" >> $GITHUB_OUTPUT
+            echo "kind=weekly" >> $GITHUB_OUTPUT
           fi
 
-      - name: Send report
+      - name: Send the email
         env:
           # Brevo is the primary route: Gmail App Passwords are blocked on
           # Google Workspace accounts unless the domain admin enables them.
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
-          MAIL_TO: ${{ secrets.MAIL_TO }}
+          # No MAIL_TO on purpose. report.py addresses admin@slideegg.com and
+          # only that, which is checkable in the source; a MAIL_TO secret could
+          # be quietly pointing somewhere else and nobody would see it.
           SHEET_URL: ${{ secrets.SHEET_URL }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |

@@ -76,12 +76,37 @@ jobs:
           ACTIVE_FROM: "0"      # 0/24 = post round the clock
           ACTIVE_TO: "24"
           DAILY_LIMIT: "8"      # hard ceiling on posts per IST day
-          # If nothing new is detected for this many hours the run is failed
-          # on purpose, which turns the run red and emails the repo owner.
-          # Posting happens before this check, so it can never block a good run.
-          ALERT_AFTER_HOURS: "24"
+          # If nothing new is detected for this many hours, the run records a
+          # problem and the alert step below emails about it. The run itself
+          # stays green on purpose: a red run notifies the repository owner
+          # personally every hour, which is what the alert email replaces.
+          #
+          # Raised from 24 to 72 on 14 Sep 2026. SlideEgg genuinely published
+          # nothing between 10 and 14 September — the live listing page still
+          # had the same top three templates the bot had already posted on the
+          # 8th — so a 24-hour threshold was calling a normal quiet spell an
+          # outage. An alarm that cries wolf every long weekend is an alarm
+          # nobody reads. Three days of silence is still short enough to catch
+          # the real fault this guards against (the runner being served a
+          # stale cached page while every run reports success).
+          ALERT_AFTER_HOURS: "72"
         run: |
           python slideegg_daily.py ${{ inputs.force == 'yes' && '--force' || '' }}
+
+      # Usually sends nothing at all. It mails the reports address only when
+      # posting is actually broken, once a day at most for the same problem,
+      # and once more when it clears. Manual runs are excluded so that trying
+      # a dry run by hand does not look like an outage.
+      - name: Alert if posting is broken
+        if: always() && github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          # No MAIL_TO — see report.yml. Alerts go to admin@slideegg.com only.
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: python report.py --alert
 
       - name: Commit state
         if: always()
