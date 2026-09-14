@@ -108,8 +108,13 @@ subj, html = R.build_weekly(NOW)
 check("counts only the last 7 days", "7 posts" in subj, subj)
 check("excludes day 8 and older", "Item 8" not in html and "Item 9" not in html)
 check("includes day 7 boundary", "Item 6" in html)
-check("shows a day-by-day breakdown", "▇" in html)
-check("shows an average per day", "1.0" in html)
+# The weekly mail was cut back to the list of posts and nothing else. The
+# chart and the stats grid it used to carry are asserted GONE here, so that
+# putting them back is a deliberate act rather than an accident.
+check("no day-by-day breakdown any more", "▇" not in html)
+check("no average-per-day tile any more", "Avg / day" not in html)
+check("every post in the window is still listed",
+      all(f"Item {i}" in html for i in range(7)))
 
 print("\nROBUSTNESS")
 R.POSTS_CSV.unlink(missing_ok=True)

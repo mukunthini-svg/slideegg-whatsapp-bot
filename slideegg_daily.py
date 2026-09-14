@@ -909,6 +909,8 @@ def main():
         CHANNEL = resolve_channel(CHANNEL)
         if not CHANNEL:
             log("! no usable channel id — aborting before posting")
+            record_problem("the channel id could not be resolved, so nothing "
+                           "could be posted")
             return 1
 
     now = dt.datetime.now(IST)
@@ -943,6 +945,8 @@ def main():
             LOG_FILE.write_text(json.dumps(
                 {"run": now.isoformat(), "mode": "error",
                  "error": "empty template listing"}, indent=1))
+            record_problem("the template listing page came back empty — the "
+                           "site layout may have changed")
             return 1
 
     # ---- blog: index order, publish date checked when we open each post
@@ -1074,38 +1078,98 @@ def main():
 
 
 def watchdog(now, found_new, failed):
-    """Fail the run when the channel has gone quiet for too long.
+    """Notice when the channel has gone quiet for too long.
 
-    A failed run turns the GitHub Actions run red and emails the repository
-    owner, which is the whole point: every silent failure so far reported
-    success. Posting has already happened by the time this runs, so raising
-    the alarm can never stop a good run from delivering.
+    This used to fail the run on purpose, because a red run emails the
+    repository owner and that was the only alarm available. It is not the
+    alarm any more: the owner asked for one address to hear about problems,
+    not their own inbox filling up hourly, so `report.py --alert` sends a
+    single mail instead and the run stays green. What this function still
+    does is decide whether there IS a problem and write that verdict where
+    the alert step can read it.
+
+    Posting has already happened by the time this runs, so nothing here can
+    stop a good run from delivering.
     """
     health = update_health(now, found_new) if not DRY_RUN else load_health()
     quiet = hours_since_new(now, health)
 
+    problem = None
     if failed:
-        log(f"! {failed} post(s) failed this run")
-        return 1
-
-    if quiet > ALERT_AFTER_HOURS:
+        problem = f"{failed} post(s) failed to send this run"
+        log(f"! {problem}")
+    elif quiet > ALERT_AFTER_HOURS:
+        problem = (f"nothing new has been detected for {quiet:.0f} hours "
+                   f"(limit {ALERT_AFTER_HOURS}h)")
         log("=" * 60)
-        log(f"! WATCHDOG: nothing new detected for {quiet:.1f} hours "
-            f"(limit {ALERT_AFTER_HOURS}h).")
+        log(f"! WATCHDOG: {problem}")
         log("! Every run has reported success, so check these in order:")
         log("!  1. Open slideegg.com/latest-powerpoint-templates in a browser")
         log("!     and compare the newest titles with diagnostics.page1_top3")
         log("!     in state/last_run.json. Different = the runner is being")
         log("!     served a stale cached page.")
         log("!  2. Check mode is 'live' and why_dry is null.")
-        log("!  3. Check the Whapi number is still linked and still a channel admin.")
+        log("!  3. Check the bot number is still linked (WhatsApp -> Linked")
+        log("!     devices) and still an admin of the channel.")
         log("=" * 60)
-        return 1
+    else:
+        log(f"watchdog ok | {quiet:.1f}h since the last new item "
+            f"(alerts after {ALERT_AFTER_HOURS}h)")
 
-    log(f"watchdog ok | {quiet:.1f}h since the last new item "
-        f"(alerts after {ALERT_AFTER_HOURS}h)")
+    record_problem(problem)
     return 0
 
 
+def record_problem(problem):
+    """Stamp the verdict onto last_run.json for the alert step to read."""
+    if DRY_RUN:
+        return
+    try:
+        data = json.loads(LOG_FILE.read_text()) if LOG_FILE.exists() else {}
+    except (ValueError, OSError):
+        data = {}
+    data["problem"] = problem
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        LOG_FILE.write_text(json.dumps(data, indent=1))
+    except OSError as e:
+        log(f"! could not record the verdict: {e}")
+
+
+def record_crash(exc):
+    """A crash is a problem like any other — write it down, do not go red.
+
+    Without this the traceback would be the only trace, GitHub would mark the
+    run failed, and the owner would get the hourly mail they asked me to stop.
+    """
+    import traceback
+    try:
+        data = json.loads(LOG_FILE.read_text()) if LOG_FILE.exists() else {}
+    except (ValueError, OSError):
+        data = {}
+    data["run"] = dt.datetime.now(IST).isoformat()
+    data["problem"] = f"the run crashed: {type(exc).__name__}: {exc}"
+    data["traceback"] = traceback.format_exc()[-2000:]
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        LOG_FILE.write_text(json.dumps(data, indent=1))
+    except OSError:
+        pass
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        CODE = main()
+    except Exception as exc:                       # noqa: BLE001
+        import traceback
+        log(f"! the run crashed: {type(exc).__name__}: {exc}")
+        traceback.print_exc()
+        record_crash(exc)
+        CODE = 1
+    # Exit green even when something went wrong. A red run is a notification
+    # to the repository owner's personal inbox, and that is exactly what was
+    # asked to stop; the alert email carries the bad news now. Set
+    # EXIT_ON_ERROR=1 to get the old behaviour back when debugging by hand.
+    if os.environ.get("EXIT_ON_ERROR", "0").strip() == "1":
+        sys.exit(CODE)
+    sys.exit(0)

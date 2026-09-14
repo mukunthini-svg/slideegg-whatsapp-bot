@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """Watchdog tests. The watchdog is the alarm for silent failures — the two
 outages this system has had both reported success, so this logic has to be
-right or the alarm is worse than useless."""
+right or the alarm is worse than useless.
+
+It no longer signals by failing the run. A red run emails the repository
+owner personally every hour, and that was asked to stop, so the watchdog now
+always exits 0 and writes its verdict into last_run.json['problem'], which
+report.py --alert turns into a single email. These tests therefore assert on
+the recorded verdict, not on the exit code — and they assert the exit code is
+always 0, because a stray non-zero is exactly the regression that would start
+the flood again.
+"""
 import sys, json, os, pathlib, datetime as dt
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -28,36 +37,75 @@ def setH(hours_ago):
         {"last_new_item_at": (NOW - dt.timedelta(hours=hours_ago)).isoformat()}))
 
 
+def run(found_new=False, failed=0):
+    """Run the watchdog and return (exit code, recorded problem)."""
+    S.LOG_FILE.unlink(missing_ok=True)
+    rc = S.watchdog(NOW, found_new=found_new, failed=failed)
+    try:
+        problem = json.loads(S.LOG_FILE.read_text()).get("problem")
+    except (OSError, ValueError):
+        problem = "<nothing recorded>"
+    return rc, problem
+
+
 print("\nWATCHDOG")
 setH(1)
-check("quiet 1h -> ok", S.watchdog(NOW, found_new=False, failed=0) == 0)
+rc, problem = run()
+check("quiet 1h -> nothing wrong", problem is None, problem)
 
 setH(23.5)
-check("quiet 23.5h -> still ok", S.watchdog(NOW, found_new=False, failed=0) == 0)
+rc, problem = run()
+check("quiet 23.5h -> still nothing wrong", problem is None, problem)
 
 setH(30)
-check("quiet 30h -> ALARM (exit 1)", S.watchdog(NOW, found_new=False, failed=0) == 1)
+rc, problem = run()
+check("quiet 30h -> a problem is recorded", problem and "nothing new" in problem,
+      problem)
+check("...but the run still exits 0 so no mail is sent by GitHub", rc == 0, rc)
 
 setH(30)
-check("a new item resets the clock", S.watchdog(NOW, found_new=True, failed=0) == 0)
+rc, problem = run(found_new=True)
+check("a new item resets the clock", problem is None, problem)
 h = json.loads(S.HEALTH_FILE.read_text())
 check("clock actually written", h["last_new_item_at"][:16] == NOW.isoformat()[:16], h)
 
 setH(1)
-check("a failed post alarms immediately", S.watchdog(NOW, found_new=True, failed=2) == 1)
+rc, problem = run(found_new=True, failed=2)
+check("a failed post is recorded immediately",
+      problem and "2 post(s) failed" in problem, problem)
+check("...and that run exits 0 too", rc == 0, rc)
 
 S.HEALTH_FILE.unlink(missing_ok=True)
-check("no history -> no false alarm on a first ever run",
-      S.watchdog(NOW, found_new=False, failed=0) == 0)
+rc, problem = run()
+check("no history -> no false alarm on a first ever run", problem is None, problem)
 
 S.HEALTH_FILE.write_text("{{ corrupt")
-check("corrupt health file -> no false alarm",
-      S.watchdog(NOW, found_new=False, failed=0) == 0)
+rc, problem = run()
+check("corrupt health file -> no false alarm", problem is None, problem)
 
 S.HEALTH_FILE.write_text(json.dumps(
     {"last_new_item_at": (NOW - dt.timedelta(hours=40)).replace(tzinfo=None).isoformat()}))
+rc, problem = run()
 check("timestamp without a timezone still alarms",
-      S.watchdog(NOW, found_new=False, failed=0) == 1)
+      problem and "nothing new" in problem, problem)
+
+# A healthy run must actively clear the field. Leaving a stale 'problem'
+# behind would keep the alert mail alive long after the fault was fixed.
+setH(1)
+S.LOG_FILE.write_text(json.dumps({"problem": "an old fault, since fixed"}))
+S.watchdog(NOW, found_new=True, failed=0)
+check("a healthy run clears the previous problem",
+      json.loads(S.LOG_FILE.read_text()).get("problem") is None,
+      json.loads(S.LOG_FILE.read_text()).get("problem"))
+
+# The verdict is written alongside whatever main() already recorded, not
+# instead of it — the alert email and the run summary both read this file.
+setH(1)
+S.LOG_FILE.write_text(json.dumps({"posted": 3, "mode": "live"}))
+S.watchdog(NOW, found_new=True, failed=1)
+data = json.loads(S.LOG_FILE.read_text())
+check("recording a problem preserves the rest of last_run.json",
+      data.get("posted") == 3 and data.get("mode") == "live", data)
 
 setH(30)
 was = S.DRY_RUN
