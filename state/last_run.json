@@ -1,32 +1,37 @@
 {
- "run": "2026-09-21T05:37:28.173605+05:30",
+ "run": "2026-09-21T11:38:48.001933+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
- "sender_error": null,
+ "sender_error": "sender stopped responding",
  "token_chars": 32,
- "daily_posted": 0,
+ "daily_posted": 1,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
-   "prosumer",
-   "us-open-2026",
-   "brics-summit-2026"
+   "lactobacillus",
+   "gametogenesis",
+   "cyanobacteria"
   ],
   "page1_count": 24,
-  "page1_http_date": "Mon, 21 Sep 2026 00:07:28 GMT",
+  "page1_http_date": "Mon, 21 Sep 2026 06:08:48 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 378086
+  "page1_bytes": 377424
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 0,
+ "new_templates": 5,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 0,
- "failed": 0,
- "failed_urls": [],
- "problem": null
+ "posted": 1,
+ "failed": 4,
+ "failed_urls": [
+  "https://www.slideegg.com/gametogenesis",
+  "https://www.slideegg.com/cyanobacteria",
+  "https://www.slideegg.com/spectrometry-presentation",
+  "https://www.slideegg.com/osteosarcoma"
+ ],
+ "problem": "4 post(s) failed to send this run"
 }
