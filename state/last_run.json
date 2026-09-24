@@ -1,32 +1,40 @@
 {
- "run": "2026-09-24T10:03:38.110445+05:30",
+ "run": "2026-09-24T15:23:17.708133+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
- "sender_error": null,
+ "sender_error": "sender stopped responding",
  "token_chars": 32,
- "daily_posted": 0,
+ "daily_posted": 1,
  "daily_limit": 8,
- "retired_over_limit": 0,
+ "retired_over_limit": 5,
  "diagnostics": {
   "page1_top3": [
-   "lactobacillus",
-   "gametogenesis",
-   "cyanobacteria"
+   "y2k-aesthetic",
+   "deep-tech",
+   "melanoma"
   ],
   "page1_count": 24,
-  "page1_http_date": "Thu, 24 Sep 2026 04:33:38 GMT",
+  "page1_http_date": "Thu, 24 Sep 2026 09:53:18 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 388864
+  "page1_bytes": 388168
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 0,
+ "new_templates": 13,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 0,
- "failed": 0,
- "failed_urls": [],
- "problem": null
+ "posted": 1,
+ "failed": 7,
+ "failed_urls": [
+  "https://www.slideegg.com/deep-tech",
+  "https://www.slideegg.com/melanoma",
+  "https://www.slideegg.com/neuroplasticity",
+  "https://www.slideegg.com/neonatal-resuscitation",
+  "https://www.slideegg.com/neonatal-care",
+  "https://www.slideegg.com/sarvepalli-radhakrishnan",
+  "https://www.slideegg.com/proteomics"
+ ],
+ "problem": "7 post(s) failed to send this run"
 }
