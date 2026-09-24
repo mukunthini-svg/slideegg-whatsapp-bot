@@ -1,11 +1,11 @@
 {
- "run": "2026-09-24T20:24:20.095892+05:30",
+ "run": "2026-09-25T00:30:57.625268+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
  "sender_error": "sender stopped responding",
  "token_chars": 32,
- "daily_posted": 4,
+ "daily_posted": 0,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
@@ -15,17 +15,17 @@
    "melanoma"
   ],
   "page1_count": 24,
-  "page1_http_date": "Thu, 24 Sep 2026 14:54:20 GMT",
+  "page1_http_date": "Thu, 24 Sep 2026 19:00:57 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 388168
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 7,
+ "new_templates": 4,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 3,
+ "posted": 0,
  "failed": 4,
  "failed_urls": [
   "https://www.slideegg.com/neonatal-resuscitation",
