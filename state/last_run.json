@@ -1,9 +1,12 @@
 {
- "run": "2026-09-25T23:58:52.517593+05:30",
+ "run": "2026-09-26T03:42:29.670430+05:30",
  "mode": "live",
- "daily_posted": 8,
+ "why_dry": null,
+ "sender": "baileys",
+ "sender_error": null,
+ "token_chars": 32,
+ "daily_posted": 0,
  "daily_limit": 8,
- "posted": 0,
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
@@ -12,10 +15,18 @@
    "tentacle"
   ],
   "page1_count": 24,
-  "page1_http_date": "Fri, 25 Sep 2026 18:28:52 GMT",
+  "page1_http_date": "Fri, 25 Sep 2026 22:12:29 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 389623
  },
+ "templates_scanned": 72,
+ "blog_scanned": 30,
+ "new_templates": 0,
+ "new_blog": 0,
+ "blog_skipped_as_refresh": 0,
+ "posted": 0,
+ "failed": 0,
+ "failed_urls": [],
  "problem": null
 }
