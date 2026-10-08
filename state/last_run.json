@@ -1,32 +1,40 @@
 {
- "run": "2026-10-08T14:18:43.415578+05:30",
+ "run": "2026-10-08T21:52:10.178300+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
- "sender_error": null,
+ "sender_error": "sender stopped responding",
  "token_chars": 32,
- "daily_posted": 0,
+ "daily_posted": 1,
  "daily_limit": 8,
- "retired_over_limit": 0,
+ "retired_over_limit": 9,
  "diagnostics": {
   "page1_top3": [
-   "biomechatronics",
-   "employee-performance-review",
-   "self-discipline"
+   "social-security-cola-2027",
+   "diarrhea",
+   "qcdsm"
   ],
   "page1_count": 24,
-  "page1_http_date": "Thu, 08 Oct 2026 08:48:43 GMT",
+  "page1_http_date": "Thu, 08 Oct 2026 16:22:10 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 390674
+  "page1_bytes": 390048
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 0,
+ "new_templates": 17,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 0,
- "failed": 0,
- "failed_urls": [],
- "problem": null
+ "posted": 1,
+ "failed": 7,
+ "failed_urls": [
+  "https://www.slideegg.com/diarrhea",
+  "https://www.slideegg.com/qcdsm",
+  "https://www.slideegg.com/hyperbaric-oxygen-therapy",
+  "https://www.slideegg.com/metronome",
+  "https://www.slideegg.com/cerebrovascular-disease",
+  "https://www.slideegg.com/pet-store-business-plan",
+  "https://www.slideegg.com/cmdb"
+ ],
+ "problem": "7 post(s) failed to send this run"
 }
