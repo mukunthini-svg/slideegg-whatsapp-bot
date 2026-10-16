@@ -1,32 +1,34 @@
 {
- "run": "2026-10-16T12:31:53.000841+05:30",
+ "run": "2026-10-16T17:45:59.516890+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
- "sender_error": null,
+ "sender_error": "sender stopped responding",
  "token_chars": 32,
  "daily_posted": 0,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
+   "rodester",
    "aerospace-standard-bsi-en-9100",
-   "cryptography-techniques",
-   "entrepreneurship-development-program"
+   "cryptography-techniques"
   ],
   "page1_count": 24,
-  "page1_http_date": "Fri, 16 Oct 2026 07:01:53 GMT",
+  "page1_http_date": "Fri, 16 Oct 2026 12:15:59 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 385374
+  "page1_bytes": 385273
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 0,
+ "new_templates": 1,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
  "posted": 0,
- "failed": 0,
- "failed_urls": [],
- "problem": null
+ "failed": 1,
+ "failed_urls": [
+  "https://www.slideegg.com/rodester"
+ ],
+ "problem": "1 post(s) failed to send this run"
 }
