@@ -1,5 +1,5 @@
 {
- "run": "2026-10-23T06:54:10.970070+05:30",
+ "run": "2026-10-23T12:51:11.410723+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
@@ -10,27 +10,29 @@
  "retired_over_limit": 0,
  "diagnostics": {
   "page1_top3": [
+   "air-conditioning-system",
    "roadster",
-   "aerospace-standard-bsi-en-9100",
-   "cryptography-techniques"
+   "aerospace-standard-bsi-en-9100"
   ],
   "page1_count": 24,
-  "page1_http_date": "Fri, 23 Oct 2026 01:24:11 GMT",
+  "page1_http_date": "Fri, 23 Oct 2026 07:21:11 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
-  "page1_bytes": 385243
+  "page1_bytes": 385105
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 1,
- "new_blog": 2,
+ "new_templates": 2,
+ "new_blog": 3,
  "blog_skipped_as_refresh": 0,
  "posted": 0,
- "failed": 3,
+ "failed": 5,
  "failed_urls": [
   "https://www.slideegg.com/blog/industry-information/slideegg-pricing-explained-every-plan-and-feature-compared-2026/",
+  "https://www.slideegg.com/blog/presentation-collections/best-diwali-powerpoint-templates-2026-free-and-premium-picks/",
   "https://www.slideegg.com/blog/presentation-collections/best-new-year-powerpoint-templates-2027-free-and-premium-picks/",
+  "https://www.slideegg.com/air-conditioning-system",
   "https://www.slideegg.com/roadster"
  ],
- "problem": "3 post(s) failed to send this run"
+ "problem": "5 post(s) failed to send this run"
 }
