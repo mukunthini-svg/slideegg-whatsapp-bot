@@ -1,11 +1,11 @@
 {
- "run": "2026-10-24T16:16:53.126894+05:30",
+ "run": "2026-10-24T19:55:53.216610+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
  "sender_error": "sender stopped responding",
  "token_chars": 32,
- "daily_posted": 1,
+ "daily_posted": 3,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
@@ -15,7 +15,7 @@
    "aerospace-standard-bsi-en-9100"
   ],
   "page1_count": 24,
-  "page1_http_date": "Sat, 24 Oct 2026 10:46:53 GMT",
+  "page1_http_date": "Sat, 24 Oct 2026 14:25:53 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 385716
@@ -23,16 +23,14 @@
  "templates_scanned": 72,
  "blog_scanned": 30,
  "new_templates": 2,
- "new_blog": 4,
+ "new_blog": 3,
  "blog_skipped_as_refresh": 0,
- "posted": 1,
- "failed": 5,
+ "posted": 2,
+ "failed": 3,
  "failed_urls": [
-  "https://www.slideegg.com/blog/presentation-collections/best-christmas-powerpoint-templates-2026-for-every-occasion/",
-  "https://www.slideegg.com/blog/presentation-collections/best-diwali-powerpoint-templates-2026-free-and-premium-picks/",
   "https://www.slideegg.com/blog/presentation-collections/best-new-year-powerpoint-templates-2027-free-and-premium-picks/",
   "https://www.slideegg.com/air-conditioning-system",
   "https://www.slideegg.com/roadster"
  ],
- "problem": "5 post(s) failed to send this run"
+ "problem": "3 post(s) failed to send this run"
 }
