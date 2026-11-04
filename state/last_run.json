@@ -1,11 +1,11 @@
 {
- "run": "2026-11-04T11:30:17.164909+05:30",
+ "run": "2026-11-04T19:48:57.072102+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
- "sender_error": "sender stopped responding",
+ "sender_error": null,
  "token_chars": 32,
- "daily_posted": 3,
+ "daily_posted": 4,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
@@ -15,20 +15,18 @@
    "arbitration-and-conciliation"
   ],
   "page1_count": 24,
-  "page1_http_date": "Wed, 04 Nov 2026 06:00:17 GMT",
+  "page1_http_date": "Wed, 04 Nov 2026 14:18:57 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 388993
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 4,
+ "new_templates": 1,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 3,
- "failed": 1,
- "failed_urls": [
-  "https://www.slideegg.com/bionanotechnology"
- ],
- "problem": "1 post(s) failed to send this run"
+ "posted": 1,
+ "failed": 0,
+ "failed_urls": [],
+ "problem": null
 }
