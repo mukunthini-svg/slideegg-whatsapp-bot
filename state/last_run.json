@@ -1,11 +1,11 @@
 {
- "run": "2026-11-06T20:26:17.694644+05:30",
+ "run": "2026-11-07T02:18:42.847907+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
  "sender_error": "sender stopped responding",
  "token_chars": 32,
- "daily_posted": 2,
+ "daily_posted": 1,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
@@ -15,7 +15,7 @@
    "environmental-and-social-management-plan"
   ],
   "page1_count": 24,
-  "page1_http_date": "Fri, 06 Nov 2026 14:56:18 GMT",
+  "page1_http_date": "Fri, 06 Nov 2026 20:48:43 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 391443
@@ -25,14 +25,13 @@
  "new_templates": 5,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
- "posted": 0,
- "failed": 5,
+ "posted": 1,
+ "failed": 4,
  "failed_urls": [
-  "https://www.slideegg.com/spectrophotometer",
   "https://www.slideegg.com/monolithic-architecture",
   "https://www.slideegg.com/gymnosperms",
   "https://www.slideegg.com/pqcdsm",
   "https://www.slideegg.com/pleural-effusion"
  ],
- "problem": "5 post(s) failed to send this run"
+ "problem": "4 post(s) failed to send this run"
 }
