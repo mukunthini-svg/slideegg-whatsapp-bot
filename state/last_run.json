@@ -1,11 +1,11 @@
 {
- "run": "2026-11-25T18:04:59.464443+05:30",
+ "run": "2026-11-26T03:53:40.384180+05:30",
  "mode": "live",
  "why_dry": null,
  "sender": "baileys",
- "sender_error": "sender stopped responding",
+ "sender_error": null,
  "token_chars": 32,
- "daily_posted": 3,
+ "daily_posted": 1,
  "daily_limit": 8,
  "retired_over_limit": 0,
  "diagnostics": {
@@ -15,20 +15,18 @@
    "lidar-technology"
   ],
   "page1_count": 24,
-  "page1_http_date": "Wed, 25 Nov 2026 12:34:59 GMT",
+  "page1_http_date": "Wed, 25 Nov 2026 22:23:40 GMT",
   "page1_age": null,
   "page1_x_cache": "Miss from cloudfront",
   "page1_bytes": 391380
  },
  "templates_scanned": 72,
  "blog_scanned": 30,
- "new_templates": 2,
+ "new_templates": 1,
  "new_blog": 0,
  "blog_skipped_as_refresh": 0,
  "posted": 1,
- "failed": 1,
- "failed_urls": [
-  "https://www.slideegg.com/lisbon"
- ],
- "problem": "1 post(s) failed to send this run"
+ "failed": 0,
+ "failed_urls": [],
+ "problem": null
 }
